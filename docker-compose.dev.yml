@@ -7,3 +7,9 @@ services:
       - "6379:6379"
     # No persistence command needed. Default is memory-only/snapshotting.
     restart: always
+  redis-insight:
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
