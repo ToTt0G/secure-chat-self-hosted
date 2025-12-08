@@ -13,13 +13,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUsername } from "@/hooks/use-username";
 import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { username } = useUsername();
+  const router = useRouter();
 
   const { mutate: createRoom } = useMutation({
     mutationFn: async () => {
       const res = await client.room.create.post();
+
+      if (res.status === 200) {
+        router.push(`/room/${res.data?.roomId}`);
+      }
     },
   });
 

@@ -55,6 +55,41 @@ The application will be available at `http://localhost:3000`.
 *   `next-app-bun/src/lib/redis.ts`: Redis client configuration. Note: It defaults to `redis://server.local:6379` in development if `REDIS_URL` is not set.
 *   `next-app-bun/src/lib/client.ts`: (Likely) The type-safe frontend client for Elysia (Eden).
 
+## Production Deployment
+
+This project includes a production-ready Docker setup that containerizes both the Next.js application and the Redis database.
+
+### Production Architecture
+
+*   **App Container:** Builds the Next.js app using `output: "standalone"` and runs it with Bun. It is exposed on port `3000`.
+*   **Redis Container:** Runs Redis in a private network, accessible only by the App container (secure).
+*   **Network:** Both services communicate via a bridge network (`app_network`).
+
+### deploying
+
+To deploy the application in production mode:
+
+1.  **Configure Environment:**
+    Review `docker-compose.prod.yml`. By default, it sets:
+    *   `NODE_ENV=production`
+    *   `REDIS_URL=redis://redis:6379` (Internal Docker network address)
+
+    If you are deploying to a domain, you should add `NEXT_PUBLIC_APP_URL` to the `environment` section of the `app` service in `docker-compose.prod.yml` or pass it via a `.env` file.
+
+2.  **Build and Run:**
+    Run the following command in the root directory:
+
+    ```bash
+    docker-compose -f docker-compose.prod.yml up -d --build
+    ```
+
+    This will:
+    *   Build the Next.js application image (optimized standalone build).
+    *   Start the Redis service.
+    *   Start the App service.
+
+    The application will be running at `http://localhost:3000` (or your server's IP).
+
 ## Development Conventions
 
 *   **API Logic:** All backend logic should be defined within the Elysia app structure in `src/app/api`.
