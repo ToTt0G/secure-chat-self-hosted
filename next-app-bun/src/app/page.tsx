@@ -1,17 +1,19 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-
-const userName = "John Doe";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUsername } from "@/hooks/use-username";
 
 export default function Home() {
+  const { username } = useUsername();
   return (
     <Card className="w-full max-w-xl">
       <CardHeader>
@@ -25,7 +27,10 @@ export default function Home() {
       </CardHeader>
       <CardContent>
         <Button className="w-full">Create Room</Button>
-        <Label className="mt-3">Current Username: {userName}</Label>
+        <Label className="mt-3 flex align-middle">
+          Current Username:{" "}
+          {username || <Skeleton className="h-3 w-48 inline-block" />}
+        </Label>
       </CardContent>
     </Card>
   );
