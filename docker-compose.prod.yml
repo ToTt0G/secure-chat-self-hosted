@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000" # Only expose the Web App
+    environment:
+      # ⚠️ MAGIC: Uses the service name 'redis' as the hostname
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      - redis
+    networks:
+      - app_network
+
+  redis:
+    image: redis:alpine
+    restart: always
+    # No ports mapped here! It is secure inside the network.
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
