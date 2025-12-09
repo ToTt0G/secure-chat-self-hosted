@@ -106,6 +106,7 @@ const Page = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && input.trim()) {
                   // TODO: SEND MESSAGE
+                  inputRef.current?.focus();
                 }
               }}
               onChange={(e) => setInput(e.target.value)}
