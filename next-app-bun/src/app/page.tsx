@@ -38,19 +38,19 @@ export default function Home() {
           minutes, no traces, total privacy.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-3">
+        <div>
+          <Label className="text-muted-foreground">Current Username: </Label>
+          <span className="text-primary-foreground h-4 animate-pulse">
+            {username || <Skeleton className="h-4 w-40 inline-block" />}
+          </span>
+        </div>
         <Button
           onClick={() => createRoom()}
-          className="w-full font-bold text-md"
+          className="w-full font-bold text-lg relative z-10"
         >
           CREATE SECURE ROOM
         </Button>
-        <Label className="mt-3 flex align-middle text-muted-foreground">
-          Current Username:{" "}
-          <span className="text-primary-foreground h-4">
-            {username || <Skeleton className="h-4 w-40 inline-block" />}
-          </span>
-        </Label>
       </CardContent>
     </Card>
   );
