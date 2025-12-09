@@ -19,13 +19,20 @@ export default function Home() {
   const { username } = useUsername();
   const router = useRouter();
 
-  const { mutate: createRoom } = useMutation({
+  const { mutate: createRoom, isPending } = useMutation({
     mutationFn: async () => {
       const res = await client.room.create.post();
-
-      if (res.status === 200) {
-        router.push(`/room/${res.data?.roomId}`);
+      return res;
+    },
+    onSuccess: (res) => {
+      if (res.error) {
+        alert("Error creating room: " + JSON.stringify(res.error));
+      } else if (res.data) {
+        router.push(`/room/${res.data.roomId}`);
       }
+    },
+    onError: (err) => {
+      alert("Network or Server Error: " + err.message);
     },
   });
 
@@ -47,9 +54,10 @@ export default function Home() {
         </div>
         <Button
           onClick={() => createRoom()}
-          className="w-full font-bold text-lg relative z-10"
+          disabled={isPending}
+          className="w-full font-bold text-lg relative z-10 touch-action-manipulation"
         >
-          CREATE SECURE ROOM
+          {isPending ? "CREATING..." : "CREATE SECURE ROOM"}
         </Button>
       </CardContent>
     </Card>
