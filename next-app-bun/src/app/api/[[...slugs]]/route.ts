@@ -19,7 +19,14 @@ const rooms = new Elysia({ prefix: "/room" }).post("/create", async () => {
   await redis.expire(`meta:${roomId}`, ROOM_TTL_SECONDS);
 
   return { roomId };
-});
+}).use(authMiddleware).get("/ttl", async ({ auth }) => {
+  const remaining = await redis.ttl(`meta:${auth.roomId}`);
+  return { ttl: remaining > 0 ? remaining : 0 };
+}, {
+  query: z.object({
+    roomId: z.string(),
+  })
+})
 
 const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/", async ({ body, auth }) => {
   const { sender, text } = body;

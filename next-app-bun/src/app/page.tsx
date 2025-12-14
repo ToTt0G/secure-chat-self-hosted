@@ -13,11 +13,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUsername } from "@/hooks/use-username";
 import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Home() {
   const { username } = useUsername();
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const wasDestroyed = searchParams.get("destroyed") === "true";
+  const error = searchParams.get("error");
 
   const { mutate: createRoom, isPending } = useMutation({
     mutationFn: async () => {
@@ -26,13 +30,13 @@ export default function Home() {
     },
     onSuccess: (res) => {
       if (res.error) {
-        alert("Error creating room: " + JSON.stringify(res.error));
+        router.push("/?error=" + JSON.stringify(res.error));
       } else if (res.data) {
         router.push(`/room/${res.data.roomId}`);
       }
     },
     onError: (err) => {
-      alert("Network or Server Error: " + err.message);
+      router.push("/?error=" + JSON.stringify(err.message));
     },
   });
 
@@ -46,6 +50,11 @@ export default function Home() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {wasDestroyed && (<div className="bg-red-950/50 border border-red-900 p-4">
+          <p className="text-red-500 font-bold uppercase">Room Destroyed</p>
+          <p className="text-white">All messages have been permanently deleted</p>
+        </div>)}
+        {error && <p className="text-destructive">Error: {error}</p>}
         <div>
           <Label className="text-muted-foreground">Current Username: </Label>
           <span className="text-primary-foreground h-4 animate-pulse">

@@ -10,7 +10,8 @@ import { ChatMessageEvent } from "@/socket-server";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 function formatTimeRemaining(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -24,7 +25,8 @@ function formatTimeRemaining(seconds: number) {
 const Page = () => {
   const params = useParams();
   const roomId = params.roomId as string;
-  const queryClient = useQueryClient();
+
+  const router = useRouter();
 
   const { username } = useUsername();
 
@@ -39,8 +41,8 @@ const Page = () => {
         refetch();
       }
       if (event === "chat:destroy") {
-        // Handle room destruction - redirect or show message
-        console.log("Room destroyed:", data);
+
+        router.push("/?destroyed=true");
       }
     },
   });
@@ -61,6 +63,29 @@ const Page = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: ttlData } = useQuery({
+    queryKey: ["ttl", roomId],
+    queryFn: async () => {
+      const res = await client.room.ttl.get({ query: { roomId } });
+      return res.data;
+    },
+  })
+
+  useEffect(() => {
+    if (ttlData?.ttl) {
+      setTimeRemaining(ttlData.ttl);
+    }
+  }, [ttlData])
+
+  useEffect(() => {
+    if (timeRemaining !== null) {
+      const interval = setInterval(() => {
+        setTimeRemaining(timeRemaining - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timeRemaining])
 
   const { data: messages, refetch } = useQuery({
     queryKey: ["messages", roomId],
