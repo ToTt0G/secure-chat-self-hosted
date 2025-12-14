@@ -3,7 +3,8 @@ import { z } from "zod";
 import redis from "@/lib/redis";
 import { nanoid } from "nanoid";
 import { authMiddleware } from "./auth";
-import { ChatMessageEvent, realtime } from "@/socket-server";
+import { publishToRealtime } from "@/lib/realtime-publisher";
+import { ChatMessageEvent, chatSchema } from "@/lib/chat-schema";
 
 const ROOM_TTL_SECONDS = 60 * 10;
 
@@ -41,7 +42,7 @@ const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/
 
   await redis.rpush(`messages:${roomId}`, JSON.stringify({ ...message, token: auth.token }));
 
-  await realtime.publish("chat", "message", message, roomId);
+  await publishToRealtime(chatSchema, "chat", "message", message, roomId);
 
   // Housekeeping
   const remaining = await redis.ttl(`meta:${roomId}`);
@@ -54,7 +55,7 @@ const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/
     roomId: z.string(),
   }),
   body: z.object({
-    sender: z.string().max(20),
+    sender: z.string().max(100),
     text: z.string().max(1000),
   })
 }).get('/', async ({ auth }) => {

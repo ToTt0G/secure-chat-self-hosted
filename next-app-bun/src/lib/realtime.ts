@@ -38,8 +38,20 @@ export class Realtime<T extends SchemaDefinition> {
         // Initialize Socket.IO server
         this.io = new Server(port, {
             cors: {
-                origin: corsOrigin,
+                origin: (origin, callback) => {
+                    // Allow requests with no origin (like mobile apps, curl, etc.)
+                    // or requests from localhost/127.0.0.1
+                    if (!origin ||
+                        origin.includes('localhost') ||
+                        origin.includes('127.0.0.1') ||
+                        origin === corsOrigin) {
+                        callback(null, true);
+                    } else {
+                        callback(null, corsOrigin);
+                    }
+                },
                 methods: ["GET", "POST"],
+                credentials: true,
             },
         });
 

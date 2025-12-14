@@ -147,7 +147,7 @@ const Page = () => {
           <div key={message.id} className="flex flex-col items-start">
             <div className="max-w-[80%] group">
               <div className="flex items-baseline gap-3 mb-1">
-                <span className={`text-xs font-bold ${message.sender === username ? "text-primary" : "text-white-500"}`}>
+                <span className={`text-xs font-bold ${message.sender === username ? "text-primary" : "text-secondary-foreground"}`}>
                   {message.sender === username ? "You" : message.sender}
                 </span>
                 <span className="text-xs text-muted-foreground">
