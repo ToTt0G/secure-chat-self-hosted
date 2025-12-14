@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
+import { io } from "socket.io-client";
 
 function formatTimeRemaining(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -15,9 +16,17 @@ function formatTimeRemaining(seconds: number) {
     .padStart(2, "0")}` as string;
 }
 
+
+
 const Page = () => {
   const params = useParams();
   const roomId = params.roomId as string;
+
+  const socket = io("http://localhost:3001");
+  socket.emit("join-room", { roomId });
+  socket.on("chat:message", (message) => {
+    //Add to messages state
+  });
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [input, setInput] = useState("");
@@ -73,8 +82,8 @@ const Page = () => {
             <span
               id="destruct-timer"
               className={`text-lg font-bold flex items-center gap-2 ${timeRemaining !== null && timeRemaining < 60
-                  ? "text-destructive"
-                  : "text-yellow-500"
+                ? "text-destructive"
+                : "text-yellow-500"
                 }`}
             >
               {timeRemaining !== null

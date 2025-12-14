@@ -3,6 +3,7 @@ import { z } from "zod";
 import redis from "@/lib/redis";
 import { nanoid } from "nanoid";
 import { authMiddleware } from "./auth";
+import { ChatMessageEvent, realtime } from "@/socket-server";
 
 const ROOM_TTL_SECONDS = 60 * 10;
 
@@ -29,7 +30,25 @@ const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/
     throw new Error("Room does not exist");
   }
 
+  const message: ChatMessageEvent = {
+    id: nanoid(),
+    sender,
+    text,
+    timestamp: Date.now(),
+    roomId,
+    token,
+  };
 
+  await redis.rpush(`messages:${roomId}`, JSON.stringify({ ...message, token: auth.token }));
+
+  await realtime.publish("chat", "message", message, roomId);
+
+  // Housekeeping
+  const remaining = await redis.ttl(`meta:${roomId}`);
+
+  await redis.expire(`messages:${roomId}`, remaining);
+  await redis.expire(`history:${roomId}`, remaining);
+  await redis.expire(roomId, remaining);
 }, {
   query: z.object({
     roomId: z.string(),
