@@ -57,7 +57,21 @@ const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/
     sender: z.string().max(20),
     text: z.string().max(1000),
   })
-});
+}).get('/', async ({ auth }) => {
+  const messagesRaw = await redis.lrange(`messages:${auth.roomId}`, 0, -1);
+
+  const messages = !messagesRaw ? [] : messagesRaw.map((message) => JSON.parse(message)) as ChatMessageEvent[];
+
+  return {
+    messages: messages.map((m) => ({
+      ...m, token: m.token === auth.token ? auth.token : undefined
+    }))
+  };
+}, {
+  query: z.object({
+    roomId: z.string(),
+  })
+})
 
 const app = new Elysia({ prefix: "/api" }).use(rooms).use(messages);
 

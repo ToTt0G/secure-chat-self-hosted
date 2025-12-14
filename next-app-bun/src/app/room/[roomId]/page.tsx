@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUsername } from "@/hooks/use-username";
+import { useRealtime } from "@/hooks/use-realtime";
 import { client } from "@/lib/client";
-import { useMutation } from "@tanstack/react-query";
+import { ChatMessageEvent } from "@/socket-server";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import { format } from "date-fns";
+import { useRef, useState } from "react";
 
 function formatTimeRemaining(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -19,31 +21,29 @@ function formatTimeRemaining(seconds: number) {
     .padStart(2, "0")}` as string;
 }
 
-
-
 const Page = () => {
   const params = useParams();
   const roomId = params.roomId as string;
+  const queryClient = useQueryClient();
 
   const { username } = useUsername();
 
-  // Socket connection - only create once on mount
-  useEffect(() => {
-    const socket = io("http://localhost:3001");
-
-    socket.emit("join-room", roomId);
-
-    socket.on("chat:message", (message) => {
-      // TODO: Add to messages state
-      console.log("Received message:", message);
-    });
-
-    // Cleanup on unmount
-    return () => {
-      socket.emit("leave-room", roomId);
-      socket.disconnect();
-    };
-  }, [roomId]);
+  // Subscribe to realtime events for this room
+  useRealtime({
+    channels: [roomId],
+    events: ["chat:message", "chat:destroy"],
+    onData: (event, data) => {
+      if (event === "chat:message") {
+        // // Invalidate and refetch messages when a new message arrives
+        // queryClient.invalidateQueries({ queryKey: ["messages", roomId] });
+        refetch();
+      }
+      if (event === "chat:destroy") {
+        // Handle room destruction - redirect or show message
+        console.log("Room destroyed:", data);
+      }
+    },
+  });
 
   const { mutateAsync: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
@@ -52,11 +52,23 @@ const Page = () => {
         { query: { roomId } }
       );
     },
+    onSuccess: () => {
+      setInput("");
+      inputRef.current?.focus();
+    }
   });
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: messages, refetch } = useQuery({
+    queryKey: ["messages", roomId],
+    queryFn: async () => {
+      const res = await client.messages.get({ query: { roomId } });
+      return res.data;
+    },
+  })
 
   const [copyStatus, setCopyStatus] = useState("COPY");
 
@@ -124,7 +136,31 @@ const Page = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin"></div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+        {messages?.messages.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-muted-foreground text-sm font-mono">No messages yet, send the first one!</p>
+          </div>
+        )}
+
+        {messages?.messages.map((message) => (
+          <div key={message.id} className="flex flex-col items-start">
+            <div className="max-w-[80%] group">
+              <div className="flex items-baseline gap-3 mb-1">
+                <span className={`text-xs font-bold ${message.sender === username ? "text-primary" : "text-white-500"}`}>
+                  {message.sender === username ? "You" : message.sender}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {format(message.timestamp, "HH:mm")}
+                </span>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed break-all">
+                {message.text}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="p-4 border-t border-border bg-secondary">
         <div className="flex gap-4">
@@ -138,10 +174,7 @@ const Page = () => {
               value={input}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && input.trim()) {
-                  // TODO: SEND MESSAGE
                   sendMessage({ text: input });
-                  setInput("");
-                  inputRef.current?.focus();
                 }
               }}
               onChange={(e) => setInput(e.target.value)}
@@ -151,8 +184,7 @@ const Page = () => {
           </div>
           <Button onClick={() => {
             sendMessage({ text: input })
-            setInput("")
-            inputRef.current?.focus()
+
           }} size="lg" className="font-bold uppercase" disabled={!input.trim() || isSending}>
             Send
           </Button>
