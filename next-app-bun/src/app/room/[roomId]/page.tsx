@@ -7,8 +7,8 @@ import { useUsername } from "@/hooks/use-username";
 import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useRef, useState } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
 function formatTimeRemaining(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -27,11 +27,23 @@ const Page = () => {
 
   const { username } = useUsername();
 
-  const socket = io("http://localhost:3001");
-  socket.emit("join-room", { roomId });
-  socket.on("chat:message", (message) => {
-    //Add to messages state
-  });
+  // Socket connection - only create once on mount
+  useEffect(() => {
+    const socket = io("http://localhost:3001");
+
+    socket.emit("join-room", roomId);
+
+    socket.on("chat:message", (message) => {
+      // TODO: Add to messages state
+      console.log("Received message:", message);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      socket.emit("leave-room", roomId);
+      socket.disconnect();
+    };
+  }, [roomId]);
 
   const { mutateAsync: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
