@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useUsername } from "@/hooks/use-username";
 import { useRealtime } from "@/hooks/use-realtime";
 import { client } from "@/lib/client";
-import { ChatMessageEvent } from "@/socket-server";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
@@ -60,6 +59,15 @@ const Page = () => {
     }
   });
 
+  const { mutateAsync: destroyRoom } = useMutation({
+    mutationFn: async () => {
+      await client.room.delete(null, { query: { roomId } });
+    },
+    onSuccess: () => {
+      router.push("/?destroyed=true");
+    }
+  });
+
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,18 +81,29 @@ const Page = () => {
   })
 
   useEffect(() => {
-    if (ttlData?.ttl) {
+    if (ttlData?.ttl !== undefined) {
       setTimeRemaining(ttlData.ttl);
     }
   }, [ttlData])
 
   useEffect(() => {
-    if (timeRemaining !== null) {
-      const interval = setInterval(() => {
-        setTimeRemaining(timeRemaining - 1);
-      }, 1000);
-      return () => clearInterval(interval);
+    if (timeRemaining === null || timeRemaining < 0) {
+      return;
     }
+    if (timeRemaining === 0) {
+      router.push("/?destroyed=true");
+      return;
+    }
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
   }, [timeRemaining])
 
   const { data: messages, refetch } = useQuery({
@@ -155,7 +174,7 @@ const Page = () => {
             </span>
           </div>
 
-          <Button variant="destructive" className="uppercase font-bold">
+          <Button onClick={() => destroyRoom()} variant="destructive" className="uppercase font-bold">
             <span className="hover:animate-pulse">Destroy Now</span>
           </Button>
         </div>
