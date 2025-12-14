@@ -7,10 +7,26 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "3000:3000" # Only expose the Web App
+      - "3000:3000" # Web App
     environment:
-      # ⚠️ MAGIC: Uses the service name 'redis' as the hostname
       - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      - redis
+    networks:
+      - app_network
+
+  socket-server:
+    build:
+      context: ./next-app-bun
+      dockerfile: Dockerfile.socket
+    restart: always
+    ports:
+      - "3001:3001" # WebSocket server
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SOCKET_PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
       - NODE_ENV=production
     depends_on:
       - redis

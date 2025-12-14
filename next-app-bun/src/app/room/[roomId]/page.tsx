@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -73,11 +72,10 @@ const Page = () => {
             </Label>
             <span
               id="destruct-timer"
-              className={`text-lg font-bold flex items-center gap-2 ${
-                timeRemaining !== null && timeRemaining < 60
+              className={`text-lg font-bold flex items-center gap-2 ${timeRemaining !== null && timeRemaining < 60
                   ? "text-destructive"
                   : "text-yellow-500"
-              }`}
+                }`}
             >
               {timeRemaining !== null
                 ? formatTimeRemaining(timeRemaining)

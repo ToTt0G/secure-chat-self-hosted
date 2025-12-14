@@ -7,9 +7,35 @@ services:
       - "6379:6379"
     # No persistence command needed. Default is memory-only/snapshotting.
     restart: always
+    networks:
+      - dev_network
+
   redis-insight:
     image: redis/redisinsight:latest
     ports:
       - "5540:5540"
     depends_on:
       - redis
+    networks:
+      - dev_network
+
+  # Optional: Run socket server in Docker during dev
+  # Uncomment to use instead of running `bun socket-server.ts` locally
+  # socket-server:
+  #   build:
+  #     context: ./next-app-bun
+  #     dockerfile: Dockerfile.socket
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379
+  #     - SOCKET_PORT=3001
+  #     - CORS_ORIGIN=http://localhost:3000
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - dev_network
+
+networks:
+  dev_network:
+    driver: bridge
