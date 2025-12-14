@@ -4,16 +4,17 @@ import { Realtime, getRedisUrl } from "./src/lib/realtime";
 
 // --- Schema Definition ---
 // Define all your realtime events with Zod validation
+const message = z.object({
+    id: z.string(),
+    sender: z.string().max(20),
+    text: z.string().max(1000),
+    timestamp: z.number(),
+    roomId: z.string(),
+    token: z.string().optional(),
+});
 const schema = {
     chat: {
-        message: z.object({
-            id: z.string(),
-            sender: z.string().max(20),
-            text: z.string().max(1000),
-            timestamp: z.number(),
-            roomId: z.string(),
-            token: z.string().optional(),
-        }),
+        message,
         destroy: z.object({
             roomId: z.string(),
             isDestroyed: z.literal(true),
@@ -34,6 +35,6 @@ process.on("SIGTERM", () => realtime.shutdown());
 process.on("SIGINT", () => realtime.shutdown());
 
 // --- Export schema types for client-side use ---
-export type ChatMessageEvent = z.infer<typeof schema.chat.message>;
+export type ChatMessageEvent = z.infer<typeof message>;
 export type ChatDestroyEvent = z.infer<typeof schema.chat.destroy>;
 export type RealtimeSchema = typeof schema;

@@ -209,3 +209,4 @@ export const getRedisUrl = (): string => {
     if (process.env.REDIS_URL) return process.env.REDIS_URL;
     return "redis://server.local:6379";
 };
+
