@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { authMiddleware } from "./auth";
 import { publishToRealtime } from "@/lib/realtime-publisher";
 import { ChatMessageEvent, chatSchema } from "@/lib/chat-schema";
-import { realtime } from "@/socket-server";
+
 
 const ROOM_TTL_SECONDS = 60 * 10;
 
@@ -36,10 +36,10 @@ const rooms = new Elysia({ prefix: "/room" }).post("/create", async () => {
     redis.del(roomId),
   ]);
 
-  await realtime.publish("chat", "destroy", {
+  await publishToRealtime(chatSchema, "chat", "destroy", {
     roomId,
     isDestroyed: true,
-  });
+  }, roomId);
 
   return { success: true };
 }, {

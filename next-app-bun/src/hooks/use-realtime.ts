@@ -32,7 +32,7 @@ export function useRealtime({
     channels,
     events,
     onData,
-    serverUrl = "http://localhost:3001",
+    serverUrl = typeof window !== "undefined" ? `http://${window.location.hostname}:3001` : "http://localhost:3001",
 }: UseRealtimeOptions) {
     const socketRef = useRef<Socket | null>(null);
     const onDataRef = useRef(onData);
