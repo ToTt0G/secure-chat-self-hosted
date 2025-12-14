@@ -3,6 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useUsername } from "@/hooks/use-username";
+import { client } from "@/lib/client";
+import { useMutation } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { io } from "socket.io-client";
@@ -22,10 +25,21 @@ const Page = () => {
   const params = useParams();
   const roomId = params.roomId as string;
 
+  const { username } = useUsername();
+
   const socket = io("http://localhost:3001");
   socket.emit("join-room", { roomId });
   socket.on("chat:message", (message) => {
     //Add to messages state
+  });
+
+  const { mutateAsync: sendMessage, isPending: isSending } = useMutation({
+    mutationFn: async ({ text }: { text: string }) => {
+      await client.messages.post(
+        { sender: username, text },
+        { query: { roomId } }
+      );
+    },
   });
 
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -113,6 +127,8 @@ const Page = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && input.trim()) {
                   // TODO: SEND MESSAGE
+                  sendMessage({ text: input });
+                  setInput("");
                   inputRef.current?.focus();
                 }
               }}
@@ -121,7 +137,11 @@ const Page = () => {
               className="border-input bg-background file:text-foreground placeholder:text-muted-foreground pl-8 h-full focus-visible:ring-primary"
             ></Input>
           </div>
-          <Button size="lg" className="font-bold uppercase">
+          <Button onClick={() => {
+            sendMessage({ text: input })
+            setInput("")
+            inputRef.current?.focus()
+          }} size="lg" className="font-bold uppercase" disabled={!input.trim() || isSending}>
             Send
           </Button>
         </div>
