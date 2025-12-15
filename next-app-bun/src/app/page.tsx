@@ -15,7 +15,9 @@ import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Home() {
+import { Suspense } from "react";
+
+function HomeContent() {
   const { username } = useUsername();
   const router = useRouter();
 
@@ -71,4 +73,22 @@ export default function Home() {
       </CardContent>
     </Card>
   );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <Card className="w-full max-w-xl">
+        <CardHeader>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-full" />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    }>
+      <HomeContent />
+    </Suspense>
+  )
 }

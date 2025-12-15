@@ -50,7 +50,7 @@ const rooms = new Elysia({ prefix: "/room" }).post("/create", async () => {
 
 const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/", async ({ body, auth }) => {
   const { sender, text } = body;
-  const { roomId, token, connected } = auth;
+  const { roomId, token } = auth;
 
   const roomExists = await redis.exists(`meta:${roomId}`);
 

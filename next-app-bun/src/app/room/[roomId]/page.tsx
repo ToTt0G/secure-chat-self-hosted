@@ -33,10 +33,8 @@ const Page = () => {
   useRealtime({
     channels: [roomId],
     events: ["chat:message", "chat:destroy"],
-    onData: (event, data) => {
+    onData: (event) => {
       if (event === "chat:message") {
-        // // Invalidate and refetch messages when a new message arrives
-        // queryClient.invalidateQueries({ queryKey: ["messages", roomId] });
         refetch();
       }
       if (event === "chat:destroy") {
@@ -82,6 +80,7 @@ const Page = () => {
 
   useEffect(() => {
     if (ttlData?.ttl !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeRemaining(ttlData.ttl);
     }
   }, [ttlData])
@@ -104,7 +103,7 @@ const Page = () => {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timeRemaining])
+  }, [timeRemaining, router])
 
   const { data: messages, refetch } = useQuery({
     queryKey: ["messages", roomId],

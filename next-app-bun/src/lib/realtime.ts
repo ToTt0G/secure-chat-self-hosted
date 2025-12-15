@@ -95,8 +95,6 @@ export class Realtime<T extends SchemaDefinition> {
      */
     joinRoom(socket: Socket, roomId: string): void {
         socket.join(roomId);
-        console.log(`Socket ${socket.id} joined room: ${roomId}`);
-
         // Subscribe to all room-specific channels for this room
         for (const channel of Object.keys(this.schema)) {
             for (const event of Object.keys(this.schema[channel])) {
@@ -107,7 +105,6 @@ export class Realtime<T extends SchemaDefinition> {
                             console.error(`Failed to subscribe to ${redisChannel}:`, err);
                         } else {
                             this.subscribedChannels.add(redisChannel);
-                            console.log(`Subscribed to ${redisChannel}`);
                         }
                     });
                 }

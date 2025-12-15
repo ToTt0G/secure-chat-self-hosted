@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface UseRealtimeOptions {
@@ -37,6 +37,9 @@ export function useRealtime({
     const socketRef = useRef<Socket | null>(null);
     const onDataRef = useRef(onData);
 
+    const channelsKey = channels.join(",");
+    const eventsKey = events.join(",");
+
     // Keep onData ref updated to avoid stale closures
     useEffect(() => {
         onDataRef.current = onData;
@@ -70,7 +73,8 @@ export function useRealtime({
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [channels.join(","), events.join(","), serverUrl]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [channelsKey, eventsKey, serverUrl]);
 
     return socketRef;
 }
