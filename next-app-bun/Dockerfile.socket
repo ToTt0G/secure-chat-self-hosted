@@ -21,6 +21,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY socket-server.ts ./
 COPY src/lib/realtime.ts ./src/lib/
+COPY src/lib/chat-schema.ts ./src/lib/
 
 USER socketserver
 

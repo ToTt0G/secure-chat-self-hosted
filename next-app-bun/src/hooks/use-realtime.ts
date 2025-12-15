@@ -32,7 +32,7 @@ export function useRealtime({
     channels,
     events,
     onData,
-    serverUrl = typeof window !== "undefined" ? `http://${window.location.hostname}:3001` : "http://localhost:3001",
+    serverUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
 }: UseRealtimeOptions) {
     const socketRef = useRef<Socket | null>(null);
     const onDataRef = useRef(onData);
@@ -44,7 +44,7 @@ export function useRealtime({
 
     useEffect(() => {
         // Connect to Socket.IO server
-        const socket = io(serverUrl);
+        const socket = io(serverUrl, { path: "/socket" });
         socketRef.current = socket;
 
         // Join all specified channels/rooms

@@ -37,6 +37,7 @@ export class Realtime<T extends SchemaDefinition> {
 
         // Initialize Socket.IO server
         this.io = new Server(port, {
+            path: process.env.SOCKET_PATH || "/socket.io",
             cors: {
                 origin: (origin, callback) => {
                     // Allow requests with no origin (like mobile apps, curl, etc.)
