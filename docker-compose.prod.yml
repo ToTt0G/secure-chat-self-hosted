@@ -11,6 +11,8 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
+      # Socket server URL - Empty to use same origin (proxied by Next.js)
+      - NEXT_PUBLIC_SOCKET_URL=
     depends_on:
       - redis
     networks:
@@ -26,7 +28,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - SOCKET_PORT=3001
-      - SOCKET_PATH=/socket
+      # No custom path needed - use default /socket.io
       - CORS_ORIGIN=https://secure-chat.redsunsetfarm.com
       - NODE_ENV=production
     depends_on:
