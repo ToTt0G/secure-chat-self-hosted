@@ -1,4 +1,5 @@
 // lib/realtime.ts
+import { createServer, Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import Redis from "ioredis";
 import { z, ZodObject, ZodRawShape } from "zod";
@@ -24,6 +25,7 @@ export interface RealtimeOptions<T extends SchemaDefinition> {
 // --- Realtime Class ---
 export class Realtime<T extends SchemaDefinition> {
     private io: Server;
+    private httpServer: HttpServer;
     private redisPub: Redis;
     private redisSub: Redis;
     private schema: T;
@@ -34,10 +36,20 @@ export class Realtime<T extends SchemaDefinition> {
 
         const port = opts.port || 3001;
         const corsOrigin = opts.corsOrigin || "http://localhost:3000";
+        // Use default /socket.io path unless SOCKET_PATH is set
+        const socketPath = process.env.SOCKET_PATH || "/socket.io";
 
-        // Initialize Socket.IO server
-        this.io = new Server(port, {
-            path: process.env.SOCKET_PATH || "/socket.io",
+        // Create explicit HTTP server for better Bun compatibility
+        this.httpServer = createServer();
+
+        // Log ALL incoming requests for debugging
+        this.httpServer.on('request', (req) => {
+            console.log(`[HTTP] ${req.method} ${req.url}`);
+        });
+
+        // Initialize Socket.IO server attached to HTTP server
+        this.io = new Server(this.httpServer, {
+            path: socketPath,
             cors: {
                 origin: (origin, callback) => {
                     // Allow requests with no origin (like mobile apps, curl, etc.)
@@ -56,6 +68,9 @@ export class Realtime<T extends SchemaDefinition> {
             },
         });
 
+        // Start HTTP server
+        this.httpServer.listen(port);
+
         // Initialize Redis connections (separate for pub/sub)
         this.redisPub = new Redis(opts.redisUrl);
         this.redisSub = new Redis(opts.redisUrl);
@@ -64,6 +79,7 @@ export class Realtime<T extends SchemaDefinition> {
         this.setupSocketListeners();
 
         console.log(`Realtime server running on port ${port}`);
+        console.log(`Socket path: ${socketPath}`);
         console.log(`CORS origin: ${corsOrigin}`);
     }
 
@@ -136,8 +152,10 @@ export class Realtime<T extends SchemaDefinition> {
         this.redisSub.disconnect();
         return new Promise((resolve) => {
             this.io.close(() => {
-                console.log("Realtime server closed");
-                resolve();
+                this.httpServer.close(() => {
+                    console.log("Realtime server closed");
+                    resolve();
+                });
             });
         });
     }

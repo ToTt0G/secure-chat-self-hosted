@@ -46,7 +46,7 @@ export function useRealtime({
     }, [onData]);
 
     useEffect(() => {
-        // Connect to Socket.IO server
+        // Connect to Socket.IO server at /socket path (same origin)
         const socket = io(serverUrl, { path: "/socket" });
         socketRef.current = socket;
 
