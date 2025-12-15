@@ -5,7 +5,7 @@ services:
     build:
       context: ./next-app-bun
       dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000" # Web App
     environment:
@@ -20,7 +20,7 @@ services:
     build:
       context: ./next-app-bun
       dockerfile: Dockerfile.socket
-    restart: always
+    restart: unless-stopped
     ports:
       - "3001:3001" # WebSocket server
     environment:
@@ -36,7 +36,7 @@ services:
 
   redis:
     image: redis:alpine
-    restart: always
+    restart: unless-stopped
     # No ports mapped here! It is secure inside the network.
     networks:
       - app_network
