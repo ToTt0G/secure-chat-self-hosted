@@ -13,6 +13,14 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 *   **Styling:** Tailwind CSS v4.
 *   **Package Manager:** Bun (implied by `next-app-bun` directory and `bun.lock`).
 
+## Features
+
+*   **Secure & Ephemeral:** Messages are transient and rooms can be self-destructed instantly.
+*   **Real-time:** Instant message delivery via WebSocket (Socket.IO).
+*   **Incognito Support:** User identity is session-based (localStorage), functioning perfectly in incognito tabs.
+*   **Zero Logs:** No persistent message storage in a traditional database (Redis is used for pub/sub).
+*   **Modern UI:** Built with Tailwind CSS v4 and shadcn/ui.
+
 ## Architecture
 
 ```
@@ -36,22 +44,60 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
          └──────────┘
 ```
 
-## Features
+| Question | Development | Production |
+|----------|-------------|------------|
+| Where does **Code** live? | Bind Mount (`./:/app`) | Inside the Image (`COPY . .`) |
+| Where does **Data** live? | Docker Volume (ephemeral) | `/mnt/fast_data/...` (SSD) |
+| Where do **Secrets** live? | `.env` (local) | `/mnt/code/project/.env` (manual) |
 
-*   **Secure & Ephemeral:** Messages are transient and rooms can be self-destructed instantly.
-*   **Real-time:** Instant message delivery via WebSocket (Socket.IO).
-*   **Incognito Support:** User identity is session-based (localStorage), functioning perfectly in incognito tabs.
-*   **Zero Logs:** No persistent message storage in a traditional database (Redis is used for pub/sub).
-*   **Modern UI:** Built with Tailwind CSS v4 and shadcn/ui.
+---
 
-*   **Frontend:** `next-app-bun/src/app` (App Router). Uses React Query for data fetching.
-*   **Backend API:** `next-app-bun/src/app/api/[[...slugs]]/route.ts`. Elysia app instance exports `GET` and `POST` handlers.
-*   **Realtime:** `next-app-bun/socket-server.ts`. Runs as a separate process, relays Redis pub/sub to WebSocket clients.
-*   **Infrastructure:** Docker Compose manages the services. Cloudflare Tunnel handles ingress routing and SSL.
+## Getting Started (Open Source Users)
 
-// ... (skipping Building and Running section)
+For local development and testing.
 
-## Production Deployment
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ToTt0G/secure-chat-self-hosted.git
+cd secure-chat-self-hosted
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env
+# Edit .env with your local settings if needed
+```
+
+### 3. Start Redis and Services
+
+```bash
+docker compose up -d
+```
+
+### 4. Run the Application
+
+```bash
+cd next-app-bun
+bun install
+bun run dev
+```
+
+In a separate terminal, run the socket server:
+
+```bash
+cd next-app-bun
+bun socket-server.ts
+```
+
+The app will be available at `http://localhost:3000`.
+
+---
+
+## Developer Deployment (Server)
+
+For production deployment on your server.
 
 ### Production Architecture
 
@@ -60,9 +106,35 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 *   **Redis Container:** Internal network only (secure)
 *   **Network:** All services on `app_network` bridge
 
+### 1. Create Production Secrets
+
+SSH into the server and manually create the production secrets:
+
+```bash
+ssh ryder@192.168.1.XX
+cd /mnt/code/secure-chat-self-hosted
+nano .env  # Paste production keys here
+```
+
+### 2. Configure CORS Origin
+
+Edit `docker-compose.prod.yml` to set your production domain:
+
+```yaml
+socket-server:
+  environment:
+    - CORS_ORIGIN=https://your-domain.com
+```
+
+### 3. Deploy
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
 ### Tunnel Configuration (Critical)
 
-For the application to function correctly in production, you must configure your **Cloudflare Tunnel (Ingress)** to route traffic based on path. This bypasses Next.js for WebSocket connections, ensuring stability.
+For the application to function correctly in production, you must configure your **Cloudflare Tunnel (Ingress)** to route traffic based on path.
 
 **Ingress Rules (in order):**
 
@@ -73,26 +145,13 @@ For the application to function correctly in production, you must configure your
     *   **Path:** (empty/catch-all)
     *   **Service:** `http://localhost:3000` (Main App)
 
-### Deploying
-
-1.  **Configure Environment:**
-    Edit `docker-compose.prod.yml` to set your production domain:
-    ```yaml
-    socket-server:
-      environment:
-        - CORS_ORIGIN=https://your-domain.com
-    ```
-
-2.  **Build and Run:**
-    ```bash
-    docker-compose -f docker-compose.prod.yml up -d --build
-    ```
+---
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REDIS_URL` | `redis://server.local:6379` | Redis connection URL |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
 | `SOCKET_PORT` | `3001` | Socket server port |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin for WebSocket |
 | `NODE_ENV` | `development` | Environment mode |
@@ -103,3 +162,7 @@ For the application to function correctly in production, you must configure your
 *   **Realtime Events:** Define in `socket-server.ts` schema, use `Realtime` class to publish.
 *   **Type Safety:** Uses Elysia's `Eden` for API and Zod for realtime events.
 *   **Components:** UI components in `src/components/ui` (shadcn/ui).
+*   **Frontend:** `next-app-bun/src/app` (App Router). Uses React Query for data fetching.
+*   **Backend API:** `next-app-bun/src/app/api/[[...slugs]]/route.ts`. Elysia app instance exports `GET` and `POST` handlers.
+*   **Realtime:** `next-app-bun/socket-server.ts`. Runs as a separate process, relays Redis pub/sub to WebSocket clients.
+*   **Infrastructure:** Docker Compose manages the services. Cloudflare Tunnel handles ingress routing and SSL.

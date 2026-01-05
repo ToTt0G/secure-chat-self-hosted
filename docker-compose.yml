@@ -6,7 +6,7 @@ services:
     ports:
       - "6379:6379"
     # No persistence command needed. Default is memory-only/snapshotting.
-    restart: always
+    restart: unless-stopped
     networks:
       - dev_network
 
