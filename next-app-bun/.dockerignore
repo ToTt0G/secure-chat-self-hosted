@@ -13,3 +13,9 @@ Dockerfile*
 *.log
 .vscode
 .idea
+
+# Synology / System
+@eaDir
+**/@eaDir
+@eaDir/
+Thumbs.db
