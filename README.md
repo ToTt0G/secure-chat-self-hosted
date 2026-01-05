@@ -47,7 +47,7 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 | Question | Development | Production |
 |----------|-------------|------------|
 | Where does **Code** live? | Bind Mount (`./:/app`) | Inside the Image (`COPY . .`) |
-| Where does **Data** live? | Docker Volume (ephemeral) | `/mnt/fast_data/...` (SSD) |
+| Where does **Data** live? | Docker Volume (ephemeral) | `/mnt/data/...` (SSD) |
 | Where do **Secrets** live? | `.env` (local) | `/mnt/code/project/.env` (manual) |
 
 ---
@@ -70,25 +70,12 @@ cp .env.example .env
 # Edit .env with your local settings if needed
 ```
 
-### 3. Start Redis and Services
+### 3. Start the Application
+
+Run the entire stack (App, Socket Server, Redis) with Docker Compose:
 
 ```bash
-docker compose up -d
-```
-
-### 4. Run the Application
-
-```bash
-cd next-app-bun
-bun install
-bun run dev
-```
-
-In a separate terminal, run the socket server:
-
-```bash
-cd next-app-bun
-bun socket-server.ts
+docker compose up
 ```
 
 The app will be available at `http://localhost:3000`.

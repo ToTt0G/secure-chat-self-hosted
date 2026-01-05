@@ -1,5 +1,38 @@
 version: "3.8"
 services:
+  app:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - ./next-app-bun:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+    command: bun run dev
+    depends_on:
+      - redis
+    networks:
+      - dev_network
+
+  socket-server:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - ./next-app-bun:/app
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SOCKET_PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+    command: bun --watch socket-server.ts
+    depends_on:
+      - redis
+    networks:
+      - dev_network
+
   redis:
     image: redis:alpine
     container_name: chat-redis
@@ -12,29 +45,13 @@ services:
 
   redis-insight:
     image: redis/redisinsight:latest
+    restart: unless-stopped
     ports:
       - "5540:5540"
     depends_on:
       - redis
     networks:
       - dev_network
-
-  # Optional: Run socket server in Docker during dev
-  # Uncomment to use instead of running `bun socket-server.ts` locally
-  # socket-server:
-  #   build:
-  #     context: ./next-app-bun
-  #     dockerfile: Dockerfile.socket
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379
-  #     - SOCKET_PORT=3001
-  #     - CORS_ORIGIN=http://localhost:3000
-  #   depends_on:
-  #     - redis
-  #   networks:
-  #     - dev_network
 
 networks:
   dev_network:

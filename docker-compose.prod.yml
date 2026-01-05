@@ -39,7 +39,8 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
-    # No ports mapped here! It is secure inside the network.
+    volumes:
+      - /mnt/data/secure_chat_redis:/data
     networks:
       - app_network
 

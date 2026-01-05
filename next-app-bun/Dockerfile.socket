@@ -17,11 +17,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 socketserver
 
 # Copy node_modules and source files needed for socket server
+# Copy node_modules and source code
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
-COPY socket-server.ts ./
-COPY src/lib/realtime.ts ./src/lib/
-COPY src/lib/chat-schema.ts ./src/lib/
+COPY . .
 
 USER socketserver
 
