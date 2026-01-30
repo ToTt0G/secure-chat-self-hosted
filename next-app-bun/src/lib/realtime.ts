@@ -20,6 +20,8 @@ export interface RealtimeOptions<T extends SchemaDefinition> {
     redisUrl: string;
     port?: number;
     corsOrigin?: string;
+    onJoinRoom?: (socket: Socket, roomId: string) => void | Promise<void>;
+    onLeaveRoom?: (socket: Socket, roomId: string) => void | Promise<void>;
 }
 
 // --- Realtime Class ---
@@ -29,10 +31,12 @@ export class Realtime<T extends SchemaDefinition> {
     private redisPub: Redis;
     private redisSub: Redis;
     private schema: T;
+    private opts: RealtimeOptions<T>;
     private subscribedChannels: Set<string> = new Set();
 
     constructor(opts: RealtimeOptions<T>) {
         this.schema = opts.schema;
+        this.opts = opts;
 
         const port = opts.port || 3001;
         const corsOrigin = opts.corsOrigin || "http://localhost:3000";
@@ -109,8 +113,17 @@ export class Realtime<T extends SchemaDefinition> {
     /**
      * Subscribe a socket to a room
      */
-    joinRoom(socket: Socket, roomId: string): void {
+    async joinRoom(socket: Socket, roomId: string): Promise<void> {
         socket.join(roomId);
+
+        if (this.opts.onJoinRoom) {
+            try {
+                await this.opts.onJoinRoom(socket, roomId);
+            } catch (err) {
+                console.error("Error in onJoinRoom callback:", err);
+            }
+        }
+
         // Subscribe to all room-specific channels for this room
         for (const channel of Object.keys(this.schema)) {
             for (const event of Object.keys(this.schema[channel])) {
@@ -131,9 +144,17 @@ export class Realtime<T extends SchemaDefinition> {
     /**
      * Remove a socket from a room
      */
-    leaveRoom(socket: Socket, roomId: string): void {
+    async leaveRoom(socket: Socket, roomId: string): Promise<void> {
         socket.leave(roomId);
         console.log(`Socket ${socket.id} left room: ${roomId}`);
+
+        if (this.opts.onLeaveRoom) {
+            try {
+                await this.opts.onLeaveRoom(socket, roomId);
+            } catch (err) {
+                console.error("Error in onLeaveRoom callback:", err);
+            }
+        }
     }
 
     /**
@@ -223,6 +244,18 @@ export class Realtime<T extends SchemaDefinition> {
 
             socket.on("leave-room", (roomId: string) => {
                 this.leaveRoom(socket, roomId);
+            });
+
+            socket.on("disconnecting", () => {
+                for (const roomId of socket.rooms) {
+                    if (roomId !== socket.id) {
+                        if (this.opts.onLeaveRoom) {
+                            this.opts.onLeaveRoom(socket, roomId)?.catch((err) => {
+                                console.error("Error in onLeaveRoom (disconnecting):", err);
+                            });
+                        }
+                    }
+                }
             });
 
             socket.on("disconnect", () => {

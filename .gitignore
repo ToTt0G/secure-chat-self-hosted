@@ -9,6 +9,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+node_modules/
 
 # Environment variables
 # =================================
@@ -37,4 +38,3 @@ next-app-bun/out/
 next-app-bun/build
 next-app-bun/*.tsbuildinfo
 next-app-bun/next-env.d.ts
-
