@@ -7,7 +7,7 @@
 This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS**, **Socket.IO**, and **Redis**.
 
 *   **Framework:** Next.js 16 (React 19)
-*   **API Layer:** ElysiaJS running within Next.js API routes (Edge-compatible pattern).
+*   **API Layer:** ElysiaJS running within Next.js API routes.
 *   **Realtime:** Socket.IO with Redis pub/sub for WebSocket connections.
 *   **Database:** Redis (managed via Docker Compose).
 *   **Styling:** Tailwind CSS v4.
