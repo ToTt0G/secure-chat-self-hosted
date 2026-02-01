@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import redis from "@/lib/redis";
 import { nanoid } from "nanoid";
 
+// Common bot/crawler User-Agent patterns (link preview generators)
+const BOT_PATTERNS = [
+  /whatsapp/i,
+  /facebookexternalhit/i,
+  /facebot/i,
+  /telegrambot/i,
+  /twitterbot/i,
+  /linkedinbot/i,
+  /slackbot/i,
+  /discordbot/i,
+  /googlebot/i,
+  /bingbot/i,
+  /preview/i,
+  /crawler/i,
+  /spider/i,
+  /bot\b/i,
+];
+
+function isBot(userAgent: string | null): boolean {
+  if (!userAgent) return false;
+  return BOT_PATTERNS.some((pattern) => pattern.test(userAgent));
+}
+
 export const proxy = async (req: NextRequest) => {
   const pathname = req.nextUrl.pathname;
 
@@ -11,6 +34,13 @@ export const proxy = async (req: NextRequest) => {
     return NextResponse.redirect(new URL("/?error=no_room_match", req.url));
 
   const roomId = roomMatch[1];
+
+  // Skip token assignment for bots/crawlers (link preview generators)
+  const userAgent = req.headers.get("user-agent");
+  if (isBot(userAgent)) {
+    // Let bots see the page but don't assign them a token
+    return NextResponse.next();
+  }
 
   // Redis returns all fields as strings (Record<string, string>)
   // We cast it to a partial typed object for better intellisense, but values are still strings.
