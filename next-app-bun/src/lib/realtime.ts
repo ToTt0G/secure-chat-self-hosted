@@ -112,19 +112,26 @@ export class Realtime<T extends SchemaDefinition> {
     joinRoom(socket: Socket, roomId: string): void {
         socket.join(roomId);
         // Subscribe to all room-specific channels for this room
+        const channelsToSubscribe: string[] = [];
+
         for (const channel of Object.keys(this.schema)) {
             for (const event of Object.keys(this.schema[channel])) {
                 const redisChannel = `room:${roomId}:${channel}:${event}`;
                 if (!this.subscribedChannels.has(redisChannel)) {
-                    this.redisSub.subscribe(redisChannel, (err) => {
-                        if (err) {
-                            console.error(`Failed to subscribe to ${redisChannel}:`, err);
-                        } else {
-                            this.subscribedChannels.add(redisChannel);
-                        }
-                    });
+                    channelsToSubscribe.push(redisChannel);
                 }
             }
+        }
+
+        if (channelsToSubscribe.length > 0) {
+            // Batch subscription for better performance
+            this.redisSub.subscribe(...channelsToSubscribe, (err) => {
+                if (err) {
+                    console.error(`Failed to subscribe to channels:`, err);
+                } else {
+                    channelsToSubscribe.forEach((ch) => this.subscribedChannels.add(ch));
+                }
+            });
         }
     }
 
