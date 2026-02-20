@@ -67,13 +67,13 @@ const messages = new Elysia({ prefix: "/messages" }).use(authMiddleware).post("/
     token,
   };
 
-  await redis.rpush(`messages:${roomId}`, JSON.stringify({ ...message, token: auth.token }));
-
-  await publishToRealtime(chatSchema, "chat", "message", message, roomId);
+  const [_, __, remaining] = await Promise.all([
+    redis.rpush(`messages:${roomId}`, JSON.stringify({ ...message, token: auth.token })),
+    publishToRealtime(chatSchema, "chat", "message", message, roomId),
+    redis.ttl(`meta:${roomId}`),
+  ]);
 
   // Housekeeping
-  const remaining = await redis.ttl(`meta:${roomId}`);
-
   await Promise.all([
     redis.expire(`messages:${roomId}`, remaining),
     redis.expire(roomId, remaining),
