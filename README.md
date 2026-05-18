@@ -104,17 +104,21 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * Set the **Docker Compose Location** to `docker-compose.prod.yml`.
 * Click **Continue**.
 
-**3. Configure Preview Environments (Optional):**
+**3. Configure Domains (Initial Prompt):**
+* After clicking Continue, Coolify will parse your compose file and prompt you to enter domains for the exposed services.
+* **`app` service:** Enter your primary production domain (e.g., `https://secure-chat.redsunsetfarm.com`).
+* **`socket-server` service:** Leave this domain field **completely blank** (or delete it if auto-filled). Next.js proxies the WebSocket traffic internally, so the socket server must not be exposed directly to the public internet.
+
+**4. Configure Preview Environments (Optional):**
 * In your resource configuration settings, find the setting for **Docker Compose Preview File** and set it to `docker-compose.preview.yml`.
 * Save the configuration.
 
-**4. Configure Domains & Environment Variables:**
-* Navigate to the **Webhooks** or **Domains** section of the `app` service in the Coolify UI to set your primary domain (e.g., `https://secure-chat.redsunsetfarm.com`).
+**5. Configure Environment Variables:**
 * Go to the **Environment Variables** tab and add the following:
   * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
   * `NEXT_PUBLIC_SOCKET_URL`: (Leave this entirely blank).
 
-**5. Enable Automated Deployments:**
+**6. Enable Automated Deployments:**
 * Go to the **Webhooks** tab in Coolify and copy the **Deploy Webhook URL**.
 * In your GitHub repository on github.com, navigate to **Settings > Secrets and variables > Actions**.
 * Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL. This allows GitHub Actions to automatically trigger deployments when your images finish building.
