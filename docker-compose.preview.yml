@@ -23,7 +23,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - SOCKET_PORT=3001
-      - CORS_ORIGIN=https://secure-chat.redsunsetfarm.com
+      - CORS_ORIGIN=*
       - NODE_ENV=production
     depends_on:
       - redis
