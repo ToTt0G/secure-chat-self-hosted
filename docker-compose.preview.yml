@@ -2,44 +2,46 @@ version: "3.8"
 
 services:
   app:
-    image: ghcr.io/tott0g/secure-chat-self-hosted-app:latest
+    image: ghcr.io/tott0g/secure-chat-self-hosted-app:pr-${COOLIFY_PULL_REQUEST_NUMBER}
     restart: unless-stopped
     ports:
-      - "3000:3000" # Web App
+      - "3000:3000"
     environment:
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
-      # Socket server URL - Empty to use same origin (proxied by Next.js)
       - NEXT_PUBLIC_SOCKET_URL=
     depends_on:
       - redis
     networks:
-      - app_network
+      - preview_network
 
   socket-server:
-    image: ghcr.io/tott0g/secure-chat-self-hosted-socket:latest
+    image: ghcr.io/tott0g/secure-chat-self-hosted-socket:pr-${COOLIFY_PULL_REQUEST_NUMBER}
     restart: unless-stopped
     ports:
-      - "3001:3001" # WebSocket server
+      - "3001:3001"
     environment:
       - REDIS_URL=redis://redis:6379
       - SOCKET_PORT=3001
-      # No custom path needed - use default /socket.io
       - CORS_ORIGIN=https://secure-chat.redsunsetfarm.com
       - NODE_ENV=production
     depends_on:
       - redis
     networks:
-      - app_network
+      - preview_network
 
   redis:
     image: redis:alpine
     restart: unless-stopped
     volumes:
-      - /mnt/data/secure_chat_redis:/data
+      - secure_chat_preview_redis_${COOLIFY_PULL_REQUEST_NUMBER}:/data
     networks:
-      - app_network
+      - preview_network
+
+volumes:
+  secure_chat_preview_redis_${COOLIFY_PULL_REQUEST_NUMBER}:
+    driver: local
 
 networks:
-  app_network:
+  preview_network:
     driver: bridge

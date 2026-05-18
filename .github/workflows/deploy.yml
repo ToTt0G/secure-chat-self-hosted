@@ -1,0 +1,80 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  REGISTRY: ghcr.io
+  # Change this if your repository owner differs
+  IMAGE_NAME: tott0g/secure-chat-self-hosted
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Web App
+        id: meta-app
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-app
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Build and push Web App
+        uses: docker/build-push-action@v5
+        with:
+          context: ./next-app-bun
+          file: ./next-app-bun/Dockerfile
+          push: true
+          tags: ${{ steps.meta-app.outputs.tags }}
+          labels: ${{ steps.meta-app.outputs.labels }}
+
+      - name: Extract metadata (tags, labels) for Socket Server
+        id: meta-socket
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-socket
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Build and push Socket Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./next-app-bun
+          file: ./next-app-bun/Dockerfile.socket
+          push: true
+          tags: ${{ steps.meta-socket.outputs.tags }}
+          labels: ${{ steps.meta-socket.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify Webhook
+        run: |
+          if [ -n "${{ secrets.COOLIFY_WEBHOOK }}" ]; then
+            curl -s -X POST "${{ secrets.COOLIFY_WEBHOOK }}"
+          else
+            echo "COOLIFY_WEBHOOK secret is not set, skipping deployment trigger."
+          fi
