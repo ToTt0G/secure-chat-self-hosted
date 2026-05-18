@@ -26,33 +26,37 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 ```
 ┌─────────────────────────────┐
 │      Cloudflare Tunnel      │
-│      (Ingress Rules)        │
+│      (*.redsunsetfarm.com)  │
 └──────────────┬──────────────┘
                │
-      ┌────────┴────────┐
-      ▼ /               ▼ /socket.io
-┌────────────┐    ┌─────────────┐
-│ Next.js App│    │Socket Server│
-│ (port 3000)│    │ (port 3001) │
-└─────┬──────┘    └──────┬──────┘
-      │                  │
-      └────────┬─────────┘
-               ▼
-         ┌──────────┐
-         │  Redis   │
-         │ Pub/Sub  │
-         └──────────┘
+               ▼ (All Traffic)
+┌─────────────────────────────┐
+│ Next.js App (port 3000)     │
+│   - Renders UI / API        │
+│   - Proxies /socket.io  ────┼─┐
+└──────────────┬──────────────┘ │
+               │                │ (Internal Network)
+               │                ▼
+               │         ┌─────────────┐
+               │         │Socket Server│
+               │         │ (port 3001) │
+               │         └──────┬──────┘
+               │                │
+               ▼                ▼
+         ┌────────────────────────┐
+         │     Redis Pub/Sub      │
+         └────────────────────────┘
 ```
 
-| Question | Development | Production |
-|----------|-------------|------------|
-| Where does **Code** live? | Bind Mount (`./:/app`) | Inside the Image (`COPY . .`) |
-| Where does **Data** live? | Docker Volume (ephemeral) | `/mnt/data/...` (SSD) |
-| Where do **Secrets** live? | `.env` (local) | `/mnt/code/project/.env` (manual) |
+| Pillar | Development | Production (Track A - Coolify) |
+| :--- | :--- | :--- |
+| **Code** | Bind Mount (`./:/app`) | Image built via GH Actions to GHCR |
+| **Data** | Docker Volume (Ephemeral) | UI Mapped to `/mnt/data/secure_chat_redis` (SSD) |
+| **Secrets** | `.env` (Local) | Coolify UI |
 
 ---
 
-## Getting Started (Open Source Users)
+## Getting Started (Local Development)
 
 For local development and testing.
 
@@ -82,55 +86,26 @@ The app will be available at `http://localhost:3000`.
 
 ---
 
-## Developer Deployment (Server)
+## Production Deployment (Coolify)
 
-For production deployment on your server.
+This project uses an automated deployment pipeline via GitHub Actions and Coolify (Track A).
 
-### Production Architecture
+### 1. Automated Builds
 
-*   **App Container:** Next.js standalone build on port `3000`
-*   **Socket Server Container:** WebSocket server on port `3001`
-*   **Redis Container:** Internal network only (secure)
-*   **Network:** All services on `app_network` bridge
+Whenever code is pushed to the `main` branch or a Pull Request is created, GitHub Actions automatically:
+1. Builds the Next.js `app` and the WebSocket `socket-server` using layer-cached Dockerfiles.
+2. Pushes the immutable images to the GitHub Container Registry (`ghcr.io`).
 
-### 1. Create Production Secrets
+### 2. Coolify Integration
 
-SSH into the server and manually create the production secrets:
+*   **Production:** When the `main` branch build finishes, the GitHub Action triggers a Coolify Webhook. Coolify automatically pulls the `latest` image tags and deploys them using `docker-compose.prod.yml`.
+*   **PR Previews:** Coolify automatically provisions ephemeral preview environments using `docker-compose.preview.yml` and the dynamic `pr-number` image tags.
 
-```bash
-ssh ryder@192.168.1.XX
-cd /mnt/code/secure-chat-self-hosted
-nano .env  # Paste production keys here
-```
+### 3. Environment Variables (Coolify UI)
 
-### 2. Configure CORS Origin
-
-Edit `docker-compose.prod.yml` to set your production domain:
-
-```yaml
-socket-server:
-  environment:
-    - CORS_ORIGIN=https://your-domain.com
-```
-
-### 3. Deploy
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-### Tunnel Configuration (Critical)
-
-For the application to function correctly in production, you must configure your **Cloudflare Tunnel (Ingress)** to route traffic based on path.
-
-**Ingress Rules (in order):**
-
-1.  **Hostname:** `your-domain.com`
-    *   **Path:** `/socket.io*`
-    *   **Service:** `http://localhost:3001` (Direct to Socket Server)
-2.  **Hostname:** `your-domain.com`
-    *   **Path:** (empty/catch-all)
-    *   **Service:** `http://localhost:3000` (Main App)
+Production secrets must be managed directly within the Coolify dashboard for this project.
+*   `CORS_ORIGIN`: Must be set to `https://secure-chat.redsunsetfarm.com` in production (set to `*` automatically for PR previews).
+*   `NEXT_PUBLIC_SOCKET_URL`: Must be left **empty** so Next.js handles proxying the WebSocket connection internally.
 
 ---
 
@@ -142,6 +117,7 @@ For the application to function correctly in production, you must configure your
 | `SOCKET_PORT` | `3001` | Socket server port |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin for WebSocket |
 | `NODE_ENV` | `development` | Environment mode |
+| `NEXT_PUBLIC_SOCKET_URL` | (empty) | Socket URL. Leave empty to use Next.js proxying. |
 
 ## Development Conventions
 
@@ -152,4 +128,4 @@ For the application to function correctly in production, you must configure your
 *   **Frontend:** `next-app-bun/src/app` (App Router). Uses React Query for data fetching.
 *   **Backend API:** `next-app-bun/src/app/api/[[...slugs]]/route.ts`. Elysia app instance exports `GET` and `POST` handlers.
 *   **Realtime:** `next-app-bun/socket-server.ts`. Runs as a separate process, relays Redis pub/sub to WebSocket clients.
-*   **Infrastructure:** Docker Compose manages the services. Cloudflare Tunnel handles ingress routing and SSL.
+*   **Infrastructure:** Docker Compose manages the services. Next.js proxies WebSocket traffic to avoid complex Ingress rules.
