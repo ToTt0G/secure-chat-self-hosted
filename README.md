@@ -90,16 +90,20 @@ The app will be available at `http://localhost:3000`.
 
 This project uses an automated deployment pipeline via GitHub Actions and Coolify (Track A).
 
-### Step-by-Step Coolify Setup
+### Step-by-Step Coolify Setup (v4)
 
 **1. Create the Project in Coolify:**
 * Navigate to your Coolify dashboard and create a new Project and Environment.
-* Add a new resource: Select **Docker Compose** (from Git repository).
-* Connect your GitHub repository.
+* Click **+ New Resource**.
+* Under the **Git Based** section, select **Public Repository** (or **Private Repository** if you have it secured).
+* Select your GitHub account, choose the `secure-chat-self-hosted` repository, and select the `main` branch.
+* When prompted for the Build Pack, select **Docker Compose**.
 
-**2. Configure the Compose File:**
-* In the resource settings, ensure the **Docker Compose File** path is set to `docker-compose.prod.yml`.
+**2. Configure the Compose File Paths:**
+* Once the resource is created, navigate to its Configuration settings.
+* Set the **Docker Compose File** path to `docker-compose.prod.yml`.
 * Set the **Docker Compose Preview File** path to `docker-compose.preview.yml`.
+* Save the configuration.
 
 **3. Configure Domains:**
 * Navigate to the **Webhooks** or **Domains** section of the `app` container in the Coolify UI.
@@ -109,11 +113,11 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * In the Coolify UI, navigate to the **Environment Variables** tab for your Docker Compose resource.
 * Add the following variables:
   * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
-  * `NEXT_PUBLIC_SOCKET_URL`: (Leave this empty/blank).
+  * `NEXT_PUBLIC_SOCKET_URL`: (Leave this entirely blank).
 
 **5. GitHub Actions Webhook:**
-* Go to the **Webhooks** tab in Coolify and copy the Deploy Webhook URL.
-* In your GitHub repository settings, navigate to **Secrets and variables > Actions**.
+* Go to the **Webhooks** tab in Coolify and copy the **Deploy Webhook URL**.
+* In your GitHub repository settings, navigate to **Settings > Secrets and variables > Actions**.
 * Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL.
 
 ### Automated Builds & Integration
