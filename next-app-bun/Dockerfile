@@ -18,6 +18,8 @@ RUN bun run build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOSTNAME "0.0.0.0"
+ENV PORT 3000
 
 # Create a non-root user for security (Debian syntax)
 RUN groupadd --system --gid 1001 nodejs
