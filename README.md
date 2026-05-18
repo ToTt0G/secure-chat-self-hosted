@@ -110,15 +110,10 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * **`socket-server` service:** Leave this domain field **completely blank** (or delete it if auto-filled). Next.js proxies the WebSocket traffic internally, so the socket server must not be exposed directly to the public internet.
 
 **4. Configure Preview Environments (PR Previews):**
-* Coolify v4 does not have a separate UI field for a "Preview Compose File". It uses a single file path for both production and previews.
-* To use our custom preview configuration:
-  1. Go to the **Advanced** tab of your resource and check **Enable PR Previews**.
-  2. Go to the **General** tab and locate the **Pre-deployment Command** field.
-  3. Enter the following script:
-     ```bash
-     if [ -n "$COOLIFY_PULL_REQUEST_NUMBER" ]; then cp docker-compose.preview.yml docker-compose.prod.yml; fi
-     ```
-  *This tells Coolify to overwrite the production compose file with the preview configuration ONLY when building a PR.*
+* Because of the "Multiple containers found" error in Coolify v4, **do not use a Pre-deployment command** for Docker Compose.
+* Instead, we have consolidated the configurations into `docker-compose.prod.yml`. It now natively supports PR previews using Coolify's automatic variables (like `$COOLIFY_PULL_REQUEST_NUMBER`).
+* Simply go to the **Advanced** tab of your resource and check **Enable PR Previews**.
+* To make sure the ephemeral images are pulled correctly during a PR, go to the **Environment Variables** tab in Coolify, add a new variable `IMAGE_TAG=pr-${COOLIFY_PULL_REQUEST_NUMBER}`, and **check the "Preview" box**.
 
 **5. Configure Environment Variables:**
 * Go to the **Environment Variables** tab and add the following:
@@ -143,7 +138,7 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 
 *   **GitHub Actions:** Whenever code is pushed to the `main` branch or a PR is created, GitHub Actions automatically builds the Next.js `app` and WebSocket `socket-server` and pushes the immutable images to the GitHub Container Registry (`ghcr.io`).
 *   **Production:** When the `main` branch build finishes, the GitHub Action triggers the Coolify Webhook. Coolify automatically pulls the `latest` image tags and deploys them using `docker-compose.prod.yml`.
-*   **PR Previews:** Coolify automatically provisions ephemeral preview environments using `docker-compose.preview.yml` and the dynamic `pr-number` image tags.
+*   **PR Previews:** Coolify automatically provisions ephemeral preview environments by injecting variables into the same `docker-compose.prod.yml` file, safely isolating data by appending the PR number to volume paths.
 
 ---
 

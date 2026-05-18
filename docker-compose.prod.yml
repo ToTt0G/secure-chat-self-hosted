@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: ghcr.io/tott0g/secure-chat-self-hosted-app:latest
+    image: ghcr.io/tott0g/secure-chat-self-hosted-app:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
       - "3000:3000" # Web App
@@ -17,15 +17,15 @@ services:
       - app_network
 
   socket-server:
-    image: ghcr.io/tott0g/secure-chat-self-hosted-socket:latest
+    image: ghcr.io/tott0g/secure-chat-self-hosted-socket:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
       - "3001:3001" # WebSocket server
     environment:
       - REDIS_URL=redis://redis:6379
       - SOCKET_PORT=3001
-      # No custom path needed - use default /socket.io
-      - CORS_ORIGIN=https://secure-chat.redsunsetfarm.com
+      # Dynamic CORS for previews, defaults to production domain
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://secure-chat.redsunsetfarm.com}
       - NODE_ENV=production
     depends_on:
       - redis
@@ -36,7 +36,8 @@ services:
     image: redis:alpine
     restart: unless-stopped
     volumes:
-      - /mnt/data/secure_chat_redis:/data
+      # Automatically appends PR number for isolated ephemeral storage, or nothing for production
+      - /mnt/data/secure_chat_redis${COOLIFY_PULL_REQUEST_NUMBER}:/data
     networks:
       - app_network
 
