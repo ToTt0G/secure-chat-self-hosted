@@ -113,13 +113,16 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * Because of the "Multiple containers found" error in Coolify v4, **do not use a Pre-deployment command** for Docker Compose.
 * Instead, we have consolidated the configurations into `docker-compose.prod.yml`. It now natively supports PR previews using Coolify's automatic variables (like `$COOLIFY_PULL_REQUEST_NUMBER`).
 * Simply go to the **Advanced** tab of your resource and check **Enable PR Previews**.
-* To make sure the ephemeral images are pulled correctly during a PR, go to the **Environment Variables** tab in Coolify, add a new variable `IMAGE_TAG=pr-${COOLIFY_PULL_REQUEST_NUMBER}`, and **check the "Preview" box**.
+* To make sure the ephemeral environments don't overwrite production data, go to the **Environment Variables** tab in Coolify, add these new variables, and **only check the "Available at Runtime" and "Preview" boxes** (do not apply them to Production):
+  * `IMAGE_TAG`: `pr-${COOLIFY_PULL_REQUEST_NUMBER}`
+  * `REDIS_VOLUME_PATH`: `/mnt/data/secure_chat_redis_pr_${COOLIFY_PULL_REQUEST_NUMBER}`
 
 **5. Configure Environment Variables:**
 * Go to the **Environment Variables** tab and add the following:
+  * `REDIS_VOLUME_PATH`: `/mnt/data/secure_chat_redis`
   * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
   * `NEXT_PUBLIC_SOCKET_URL`: (Leave this entirely blank).
-* *Note on Previews:* If you ever add secrets (like API keys) that need to be available in PR previews, ensure you check the **"Preview" checkbox** next to those variables in the Coolify UI.
+* *Note on Previews:* If you ever add secrets (like API keys) that need to be available in PR previews, ensure you check the **"Available at Runtime"** and **"Preview"** checkboxes next to those variables in the Coolify UI.
 
 **6. Enable Automated Deployments:**
 * Go to the **Advanced** tab of your resource and **uncheck "Automatic Deployments"**.

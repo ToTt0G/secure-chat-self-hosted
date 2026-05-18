@@ -36,8 +36,8 @@ services:
     image: redis:alpine
     restart: unless-stopped
     volumes:
-      # Automatically appends PR number for isolated ephemeral storage, or nothing for production
-      - /mnt/data/secure_chat_redis${COOLIFY_PULL_REQUEST_NUMBER}:/data
+      # Path provided via Coolify Environment Variables to bypass security regex
+      - $REDIS_VOLUME_PATH:/data
     networks:
       - app_network
 
