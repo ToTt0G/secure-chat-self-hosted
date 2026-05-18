@@ -92,33 +92,32 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 
 ### Step-by-Step Coolify Setup (v4)
 
-**1. Create the Project in Coolify:**
-* Navigate to your Coolify dashboard and create a new Project and Environment.
-* Click **+ New Resource**.
-* Under the **Git Based** section, select **Public Repository** (or **Private Repository** if you have it secured).
-* Select your GitHub account, choose the `secure-chat-self-hosted` repository, and select the `main` branch.
-* When prompted for the Build Pack, select **Docker Compose**.
+**1. Connect Your Repository:**
+* Navigate to your Coolify dashboard and select your Project and Environment (e.g., Production).
+* Click **+ Add New Resource**.
+* Under the **Git Based** section, select **Public Repository** (or Private if applicable).
+* Paste your repository URL or select it from your GitHub App integration, then click **Continue**.
 
-**2. Configure the Compose File Paths:**
-* Once the resource is created, navigate to its Configuration settings.
-* Set the **Docker Compose File** path to `docker-compose.prod.yml`.
-* Set the **Docker Compose Preview File** path to `docker-compose.preview.yml`.
+**2. Select the Build Pack (Crucial Step):**
+* Select the branch you want to deploy (e.g., `main`).
+* Coolify will attempt to auto-detect the project type. **You must change the Build Pack dropdown to "Docker Compose".**
+* Set the **Docker Compose Location** to `docker-compose.prod.yml`.
+* Click **Continue**.
+
+**3. Configure Preview Environments (Optional):**
+* In your resource configuration settings, find the setting for **Docker Compose Preview File** and set it to `docker-compose.preview.yml`.
 * Save the configuration.
 
-**3. Configure Domains:**
-* Navigate to the **Webhooks** or **Domains** section of the `app` container in the Coolify UI.
-* Set the primary domain (e.g., `https://secure-chat.redsunsetfarm.com`).
-
-**4. Environment Variables:**
-* In the Coolify UI, navigate to the **Environment Variables** tab for your Docker Compose resource.
-* Add the following variables:
+**4. Configure Domains & Environment Variables:**
+* Navigate to the **Webhooks** or **Domains** section of the `app` service in the Coolify UI to set your primary domain (e.g., `https://secure-chat.redsunsetfarm.com`).
+* Go to the **Environment Variables** tab and add the following:
   * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
   * `NEXT_PUBLIC_SOCKET_URL`: (Leave this entirely blank).
 
-**5. GitHub Actions Webhook:**
+**5. Enable Automated Deployments:**
 * Go to the **Webhooks** tab in Coolify and copy the **Deploy Webhook URL**.
-* In your GitHub repository settings, navigate to **Settings > Secrets and variables > Actions**.
-* Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL.
+* In your GitHub repository on github.com, navigate to **Settings > Secrets and variables > Actions**.
+* Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL. This allows GitHub Actions to automatically trigger deployments when your images finish building.
 
 ### Automated Builds & Integration
 
