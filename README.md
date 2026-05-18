@@ -109,9 +109,16 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * **`app` service:** Enter your primary production domain (e.g., `https://secure-chat.redsunsetfarm.com`).
 * **`socket-server` service:** Leave this domain field **completely blank** (or delete it if auto-filled). Next.js proxies the WebSocket traffic internally, so the socket server must not be exposed directly to the public internet.
 
-**4. Configure Preview Environments (Optional):**
-* In your resource configuration settings, find the setting for **Docker Compose Preview File** and set it to `docker-compose.preview.yml`.
-* Save the configuration.
+**4. Configure Preview Environments (PR Previews):**
+* Coolify v4 does not have a separate UI field for a "Preview Compose File". It uses a single file path for both production and previews.
+* To use our custom preview configuration:
+  1. Go to the **Advanced** tab of your resource and check **Enable PR Previews**.
+  2. Go to the **General** tab and locate the **Pre-deployment Command** field.
+  3. Enter the following script:
+     ```bash
+     if [ -n "$COOLIFY_PULL_REQUEST_NUMBER" ]; then cp docker-compose.preview.yml docker-compose.prod.yml; fi
+     ```
+  *This tells Coolify to overwrite the production compose file with the preview configuration ONLY when building a PR.*
 
 **5. Configure Environment Variables:**
 * Go to the **Environment Variables** tab and add the following:
