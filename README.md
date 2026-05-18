@@ -124,6 +124,7 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * Go to the **Environment Variables** tab and add the following:
   * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
   * `NEXT_PUBLIC_SOCKET_URL`: (Leave this entirely blank).
+* *Note on Previews:* If you ever add secrets (like API keys) that need to be available in PR previews, ensure you check the **"Preview" checkbox** next to those variables in the Coolify UI.
 
 **6. Enable Automated Deployments:**
 * Go to the **Webhooks** tab in Coolify and copy the **Deploy Webhook URL**.
