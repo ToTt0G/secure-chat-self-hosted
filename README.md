@@ -90,22 +90,37 @@ The app will be available at `http://localhost:3000`.
 
 This project uses an automated deployment pipeline via GitHub Actions and Coolify (Track A).
 
-### 1. Automated Builds
+### Step-by-Step Coolify Setup
 
-Whenever code is pushed to the `main` branch or a Pull Request is created, GitHub Actions automatically:
-1. Builds the Next.js `app` and the WebSocket `socket-server` using layer-cached Dockerfiles.
-2. Pushes the immutable images to the GitHub Container Registry (`ghcr.io`).
+**1. Create the Project in Coolify:**
+* Navigate to your Coolify dashboard and create a new Project and Environment.
+* Add a new resource: Select **Docker Compose** (from Git repository).
+* Connect your GitHub repository.
 
-### 2. Coolify Integration
+**2. Configure the Compose File:**
+* In the resource settings, ensure the **Docker Compose File** path is set to `docker-compose.prod.yml`.
+* Set the **Docker Compose Preview File** path to `docker-compose.preview.yml`.
 
-*   **Production:** When the `main` branch build finishes, the GitHub Action triggers a Coolify Webhook. Coolify automatically pulls the `latest` image tags and deploys them using `docker-compose.prod.yml`.
+**3. Configure Domains:**
+* Navigate to the **Webhooks** or **Domains** section of the `app` container in the Coolify UI.
+* Set the primary domain (e.g., `https://secure-chat.redsunsetfarm.com`).
+
+**4. Environment Variables:**
+* In the Coolify UI, navigate to the **Environment Variables** tab for your Docker Compose resource.
+* Add the following variables:
+  * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
+  * `NEXT_PUBLIC_SOCKET_URL`: (Leave this empty/blank).
+
+**5. GitHub Actions Webhook:**
+* Go to the **Webhooks** tab in Coolify and copy the Deploy Webhook URL.
+* In your GitHub repository settings, navigate to **Secrets and variables > Actions**.
+* Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL.
+
+### Automated Builds & Integration
+
+*   **GitHub Actions:** Whenever code is pushed to the `main` branch or a PR is created, GitHub Actions automatically builds the Next.js `app` and WebSocket `socket-server` and pushes the immutable images to the GitHub Container Registry (`ghcr.io`).
+*   **Production:** When the `main` branch build finishes, the GitHub Action triggers the Coolify Webhook. Coolify automatically pulls the `latest` image tags and deploys them using `docker-compose.prod.yml`.
 *   **PR Previews:** Coolify automatically provisions ephemeral preview environments using `docker-compose.preview.yml` and the dynamic `pr-number` image tags.
-
-### 3. Environment Variables (Coolify UI)
-
-Production secrets must be managed directly within the Coolify dashboard for this project.
-*   `CORS_ORIGIN`: Must be set to `https://secure-chat.redsunsetfarm.com` in production (set to `*` automatically for PR previews).
-*   `NEXT_PUBLIC_SOCKET_URL`: Must be left **empty** so Next.js handles proxying the WebSocket connection internally.
 
 ---
 
