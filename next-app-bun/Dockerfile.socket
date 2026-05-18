@@ -1,5 +1,5 @@
 # 1. Base image
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1 AS base
 
 # 2. Dependencies
 FROM base AS deps
@@ -12,11 +12,10 @@ FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 socketserver
+# Create a non-root user for security (Debian syntax)
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 socketserver
 
-# Copy node_modules and source files needed for socket server
 # Copy node_modules and source code
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
