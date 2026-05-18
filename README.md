@@ -127,9 +127,11 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * *Note on Previews:* If you ever add secrets (like API keys) that need to be available in PR previews, ensure you check the **"Preview" checkbox** next to those variables in the Coolify UI.
 
 **6. Enable Automated Deployments:**
+* Go to the **Advanced** tab of your resource and **uncheck "Automatic Deployments"**.
+  * *Why:* We want GitHub Actions to control the timing. If this is on, Coolify will deploy as soon as it sees a commit, which will fail because the Docker images haven't finished building yet.
 * Go to the **Webhooks** tab in Coolify and copy the **Deploy Webhook URL**.
 * In your GitHub repository on github.com, navigate to **Settings > Secrets and variables > Actions**.
-* Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL. This allows GitHub Actions to automatically trigger deployments when your images finish building.
+* Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL. This allows GitHub Actions to trigger the deployment ONLY after the images are successfully built and pushed to GHCR.
 
 ### Automated Builds & Integration
 
