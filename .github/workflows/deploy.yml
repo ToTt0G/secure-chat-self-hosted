@@ -76,7 +76,8 @@ jobs:
       - name: Trigger Coolify Webhook
         run: |
           if [ -n "${{ secrets.COOLIFY_WEBHOOK }}" ]; then
-            curl -s -X POST "${{ secrets.COOLIFY_WEBHOOK }}"
+            curl -s -X POST "${{ secrets.COOLIFY_WEBHOOK }}" \
+                 -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
           else
             echo "COOLIFY_WEBHOOK secret is not set, skipping deployment trigger."
           fi
