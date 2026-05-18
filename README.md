@@ -29,23 +29,22 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 │      (*.redsunsetfarm.com)  │
 └──────────────┬──────────────┘
                │
-               ▼ (All Traffic)
-┌─────────────────────────────┐
-│ Next.js App (port 3000)     │
-│   - Renders UI / API        │
-│   - Proxies /socket.io  ────┼─┐
-└──────────────┬──────────────┘ │
-               │                │ (Internal Network)
-               │                ▼
-               │         ┌─────────────┐
-               │         │Socket Server│
-               │         │ (port 3001) │
-               │         └──────┬──────┘
-               │                │
-               ▼                ▼
-         ┌────────────────────────┐
-         │     Redis Pub/Sub      │
-         └────────────────────────┘
+               ▼ (Coolify / Traefik Proxy)
+       ┌───────┴───────┐
+       │               │
+  ( / path )      ( /socket.io path )
+       ▼               ▼
+┌────────────┐   ┌─────────────┐
+│ Next.js App│   │Socket Server│
+│ (port 3000)│   │ (port 3001) │
+└─────┬──────┘   └──────┬──────┘
+      │                 │
+      └────────┬────────┘
+               ▼
+         ┌───────────┐
+         │   Redis   │
+         │  Pub/Sub  │
+         └───────────┘
 ```
 
 | Pillar | Development | Production (Track A - Coolify) |
@@ -104,10 +103,12 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * Set the **Docker Compose Location** to `docker-compose.prod.yml`.
 * Click **Continue**.
 
-**3. Configure Domains (Initial Prompt):**
-* After clicking Continue, Coolify will parse your compose file and prompt you to enter domains for the exposed services.
+**3. Configure Domains (Path-Based Routing):**
+* After clicking Continue, Coolify will prompt you to enter domains for the exposed services.
 * **`app` service:** Enter your primary production domain (e.g., `https://secure-chat.redsunsetfarm.com`).
-* **`socket-server` service:** Leave this domain field **completely blank** (or delete it if auto-filled). Next.js proxies the WebSocket traffic internally, so the socket server must not be exposed directly to the public internet.
+* **`socket-server` service:** Enter the SAME domain, but append `/socket.io` to the end (e.g., `https://secure-chat.redsunsetfarm.com/socket.io`).
+  * *Why:* Coolify's built-in Traefik proxy handles WebSockets perfectly. By doing this, any traffic going to the `/socket.io` path will bypass the Next.js app and go straight to the Socket Server container!
+  * *(Make sure you do NOT enable "Strip Prefix" in the socket-server's Advanced settings).*
 
 **4. Configure Preview Environments (PR Previews):**
 * Because of the "Multiple containers found" error in Coolify v4, **do not use a Pre-deployment command** for Docker Compose.
@@ -164,4 +165,4 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 *   **Frontend:** `next-app-bun/src/app` (App Router). Uses React Query for data fetching.
 *   **Backend API:** `next-app-bun/src/app/api/[[...slugs]]/route.ts`. Elysia app instance exports `GET` and `POST` handlers.
 *   **Realtime:** `next-app-bun/socket-server.ts`. Runs as a separate process, relays Redis pub/sub to WebSocket clients.
-*   **Infrastructure:** Docker Compose manages the services. Next.js proxies WebSocket traffic to avoid complex Ingress rules.
+*   **Infrastructure:** Docker Compose manages the services. Coolify's Traefik proxy handles routing traffic to the correct container based on the URL path.
