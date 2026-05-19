@@ -24,27 +24,27 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 ## Architecture
 
 ```
-┌─────────────────────────────┐
-│      Cloudflare Tunnel      │
-│      (*.redsunsetfarm.com)  │
-└──────────────┬──────────────┘
-               │
-               ▼ (Coolify / Traefik Proxy)
-       ┌───────┴───────┐
-       │               │
-  ( / path )      ( /socket.io path )
-       ▼               ▼
-┌────────────┐   ┌─────────────┐
-│ Next.js App│   │Socket Server│
-│ (port 3000)│   │ (port 3001) │
-└─────┬──────┘   └──────┬──────┘
-      │                 │
-      └────────┬────────┘
-               ▼
-         ┌───────────┐
-         │   Redis   │
-         │  Pub/Sub  │
-         └───────────┘
+┌───────────────────────────────────────┐
+│           Cloudflare Tunnel           │
+│         (*.redsunsetfarm.com)         │
+└───────────────────┬───────────────────┘
+                    │
+            (Coolify Proxy)
+       ┌────────────┴────────────┐
+       │                         │
+(secure-chat...)        (secure-chat-sockets...)
+       ▼                         ▼
+┌────────────┐             ┌─────────────┐
+│ Next.js App│             │Socket Server│
+│ (port 3000)│             │ (port 3001) │
+└─────┬──────┘             └──────┬──────┘
+      │                           │
+      └─────────────┬─────────────┘
+                    ▼
+              ┌───────────┐
+              │   Redis   │
+              │  Pub/Sub  │
+              └───────────┘
 ```
 
 | Pillar | Development | Production (Track A - Coolify) |
@@ -103,12 +103,11 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 * Set the **Docker Compose Location** to `docker-compose.prod.yml`.
 * Click **Continue**.
 
-**3. Configure Domains (Path-Based Routing):**
+**3. Configure Domains (Subdomain Routing):**
 * After clicking Continue, Coolify will prompt you to enter domains for the exposed services.
 * **`app` service:** Enter your primary production domain (e.g., `https://secure-chat.redsunsetfarm.com`).
-* **`socket-server` service:** Enter the SAME domain, but append `/socket.io` to the end (e.g., `https://secure-chat.redsunsetfarm.com/socket.io`).
-  * *Why:* Coolify's built-in Traefik proxy handles WebSockets perfectly. By doing this, any traffic going to the `/socket.io` path will bypass the Next.js app and go straight to the Socket Server container!
-  * *(Make sure you do NOT enable "Strip Prefix" in the socket-server's Advanced settings).*
+* **`socket-server` service:** Enter the dedicated sockets subdomain (e.g., `https://secure-chat-sockets.redsunsetfarm.com`).
+  * *Why:* Path-based routing can be problematic with WebSocket upgrades. Using a dedicated subdomain is the cleanest and most robust way to ensure instant, reliable chat connections.
 
 **4. Configure Preview Environments (PR Previews):**
 * Because of the "Multiple containers found" error in Coolify v4, **do not use a Pre-deployment command** for Docker Compose.

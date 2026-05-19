@@ -32,8 +32,7 @@ export function useRealtime({
     channels,
     events,
     onData,
-    // Use NEXT_PUBLIC_SOCKET_URL for subdomain-based socket server, fallback to same origin for dev
-    serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"),
+    serverUrl,
 }: UseRealtimeOptions) {
     const socketRef = useRef<Socket | null>(null);
     const onDataRef = useRef(onData);
@@ -47,11 +46,19 @@ export function useRealtime({
     }, [onData]);
 
     useEffect(() => {
+        let finalServerUrl = serverUrl || process.env.NEXT_PUBLIC_SOCKET_URL;
+        
+        // Smart fallback: If we are on the production domain, route to the dedicated sockets subdomain
+        if (!finalServerUrl && typeof window !== "undefined") {
+            if (window.location.hostname === "secure-chat.redsunsetfarm.com") {
+                finalServerUrl = "https://secure-chat-sockets.redsunsetfarm.com";
+            } else {
+                finalServerUrl = window.location.origin;
+            }
+        }
+
         // Connect to Socket.IO server (using default /socket.io path)
-        // If serverUrl is empty/undefined, it defaults to window.location.origin in the io() call automatically if not provided,
-        // but here we explicitely pass serverUrl which might be undefined/empty string.
-        // io(undefined) works same as io().
-        const socket = io(serverUrl || undefined, {
+        const socket = io(finalServerUrl || undefined, {
             path: "/socket.io",
             autoConnect: true,
             reconnection: true,
