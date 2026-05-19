@@ -57,10 +57,13 @@ export class Realtime<T extends SchemaDefinition> {
                     if (!origin ||
                         origin.includes('localhost') ||
                         origin.includes('127.0.0.1') ||
-                        origin === corsOrigin) {
+                        corsOrigin === '*' ||
+                        origin === corsOrigin ||
+                        corsOrigin.split(',').map(o => o.trim()).includes(origin)) {
                         callback(null, true);
                     } else {
-                        callback(null, corsOrigin);
+                        console.error(`CORS blocked origin: ${origin}. Expected: ${corsOrigin}`);
+                        callback(new Error('Not allowed by CORS'));
                     }
                 },
                 methods: ["GET", "POST"],
