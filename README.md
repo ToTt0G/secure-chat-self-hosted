@@ -1,6 +1,6 @@
 # Secure Chat Self-Hosted
 
-🚀 **Live Working Demo:** [secure-chat.redsunsetfarm.com](https://secure-chat.redsunsetfarm.com)
+🚀 **Live Working Demo:** [secure-chat.ezryder.us](https://secure-chat.ezryder.us)
 
 ## Project Overview
 
@@ -26,122 +26,135 @@ This is a self-hosted secure chat application built with **Next.js**, **ElysiaJS
 ```
 ┌───────────────────────────────────────┐
 │           Cloudflare Tunnel           │
-│         (*.redsunsetfarm.com)         │
-└───────────────────┬───────────────────┘
-                    │
-            (Coolify Proxy)
-       ┌────────────┴────────────┐
-       │                         │
-(secure-chat...)        (secure-chat-sockets...)
-       ▼                         ▼
-┌────────────┐             ┌─────────────┐
-│ Next.js App│             │Socket Server│
-│ (port 3000)│             │ (port 3001) │
-└─────┬──────┘             └──────┬──────┘
-      │                           │
-      └─────────────┬─────────────┘
-                    ▼
-              ┌───────────┐
-              │   Redis   │
-              │  Pub/Sub  │
-              └───────────┘
+│             (*.ezryder.us)            │
+│                       │               │
+└───────────────────────┼───────────────┘
+                        │
+                 (Dokploy Proxy)
+        ┌───────────────┴───────────────┐
+        │                               │
+(secure-chat...)              (secure-chat-sockets...)
+        ▼                               ▼
+┌────────────┐                   ┌─────────────┐
+│ Next.js App│                   │Socket Server│
+│ (port 3000)│                   │ (port 3001) │
+└─────┬──────┘                   └──────┬──────┘
+      │                                 │
+      └───────────────┬─────────────────┘
+                      ▼
+                ┌───────────┐
+                │   Redis   │
+                │  Pub/Sub  │
+                └───────────┘
 ```
 
-| Pillar | Development | Production (Track A - Coolify) |
+| Pillar | Development | Production (Dokploy) |
 | :--- | :--- | :--- |
-| **Code** | Bind Mount (`./:/app`) | Image built via GH Actions to GHCR |
-| **Data** | Docker Volume (Ephemeral) | UI Mapped to `/mnt/data/secure_chat_redis` (SSD) |
-| **Secrets** | `.env` (Local) | Coolify UI |
+| **Code** | Next.js Dev Server / Bun | Image built via GH Actions to GHCR |
+| **Data** | Ephemeral / Local memory | Mapped to `/mnt/data/secure-chat/redis` |
+| **Secrets** | `.env` (Local) | Dokploy UI / GH Actions Secrets |
 
 ---
 
 ## Getting Started (Local Development)
 
-For local development and testing.
+For local development and testing:
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/ToTt0G/secure-chat-self-hosted.git
-cd secure-chat-self-hosted
-```
-
-### 2. Configure Environment
+### 1. Configure Environment
 
 ```bash
 cp .env.example .env
 # Edit .env with your local settings if needed
 ```
 
-### 3. Start the Application
+### 2. Start Infrastructure
 
-Run the entire stack (App, Socket Server, Redis) with Docker Compose:
-
+Start the local Redis server:
 ```bash
-docker compose up
+docker compose up -d redis
 ```
 
-The app will be available at `http://localhost:3000`.
+### 3. Run Application
+
+Start the Next.js dev server and Socket.IO server:
+```bash
+cd next-app-bun
+bun install
+bun dev
+```
+
+The application will be available at `http://localhost:3000`.
 
 ---
 
-## Production Deployment (Coolify)
+## Production Deployment (Dokploy)
 
-This project uses an automated deployment pipeline via GitHub Actions and Coolify (Track A).
+This project uses an automated deployment pipeline via GitHub Actions to build and push Docker images to the GitHub Container Registry (GHCR), which are then pulled by the basement server managed via Dokploy.
 
-### Step-by-Step Coolify Setup (v4)
+### Step-by-Step Dokploy Instructions
 
-**1. Connect Your Repository:**
-* Navigate to your Coolify dashboard and select your Project and Environment (e.g., Production).
-* Click **+ Add New Resource**.
-* Under the **Git Based** section, select **Public Repository** (or Private if applicable).
-* Paste your repository URL or select it from your GitHub App integration, then click **Continue**.
+**1. Create a Compose Application on Dokploy:**
+* In your Dokploy dashboard, click **Create Application / Service** and select **Compose**.
+* Give the service a concise name (e.g., `secure-chat`).
+* In the configuration area, paste the `docker-compose.yml` template (see below).
 
-**2. Select the Build Pack (Crucial Step):**
-* Select the branch you want to deploy (e.g., `main`).
-* Coolify will attempt to auto-detect the project type. **You must change the Build Pack dropdown to "Docker Compose".**
-* Set the **Docker Compose Location** to `docker-compose.prod.yml`.
-* Click **Continue**.
+**2. Configure Domains and Routing:**
+* Dokploy's Traefik handles the ports automatically. Do not assign external ports in the Compose file.
+* Select the **app** service and add your primary domain (e.g., `https://secure-chat.ezryder.us`). Set the container port to `3000`.
+* Select the **socket-server** service and add the dedicated subdomain (e.g., `https://secure-chat-sockets.ezryder.us`). Set the container port to `3001`.
+  * *Why:* Dedicated subdomain routing prevents WebSocket handshake/upgrade issues through the proxy.
 
-**3. Configure Domains (Subdomain Routing):**
-* After clicking Continue, Coolify will prompt you to enter domains for the exposed services.
-* **`app` service:** Enter your primary production domain (e.g., `https://secure-chat.redsunsetfarm.com`).
-* **`socket-server` service:** Enter the dedicated sockets subdomain (e.g., `https://secure-chat-sockets.redsunsetfarm.com`).
-  * *Why:* Path-based routing can be problematic with WebSocket upgrades. Using a dedicated subdomain is the cleanest and most robust way to ensure instant, reliable chat connections.
+**3. Configure GitHub Webhook Deployments:**
+* In the **General** settings of your Dokploy Compose service, find the **Redeploy Webhook URL**.
+* Copy this URL.
+* Navigate to your GitHub repository **Settings > Secrets and variables > Actions**.
+* Add a new repository secret:
+  * Name: `DOKPLOY_WEBHOOK`
+  * Value: (Paste the Redeploy Webhook URL)
+* Now, whenever code is pushed to the `main` branch, GitHub Actions will build and push the updated images to GHCR, then ping Dokploy to pull the latest images and redeploy.
 
-**4. Configure Preview Environments (PR Previews):**
-* Because of the "Multiple containers found" error in Coolify v4, **do not use a Pre-deployment command** for Docker Compose.
-* Instead, we have consolidated the configurations into `docker-compose.prod.yml`. It now natively supports PR previews using Coolify's automatic variables (like `$COOLIFY_PULL_REQUEST_NUMBER`).
-* Simply go to the **Advanced** tab of your resource and check **Enable PR Previews**.
-* To make sure the ephemeral environments don't overwrite production data, go to the **Environment Variables** tab in Coolify, add these new variables, and **only check the "Available at Runtime" and "Preview" boxes** (do not apply them to Production):
-  * `IMAGE_TAG`: `pr-${COOLIFY_PULL_REQUEST_NUMBER}`
-  * `REDIS_VOLUME_PATH`: `/mnt/data/secure_chat_redis_pr_${COOLIFY_PULL_REQUEST_NUMBER}`
+---
 
-**5. Configure Environment Variables:**
-* Go to the **Environment Variables** tab and add the following:
-  * `REDIS_VOLUME_PATH`: `/mnt/data/secure_chat_redis`
-  * `CORS_ORIGIN`: `https://secure-chat.redsunsetfarm.com` (Your production domain).
-  * `NEXT_PUBLIC_SOCKET_URL`: (Leave this entirely blank).
-* *Note on Previews:* If you ever add secrets (like API keys) that need to be available in PR previews, ensure you check the **"Available at Runtime"** and **"Preview"** checkboxes next to those variables in the Coolify UI.
+### Example Docker Compose Template
 
-**6. Enable Automated Deployments:**
-* Go to the **Advanced** tab of your resource and **uncheck "Automatic Deployments"**.
-  * *Why:* We want GitHub Actions to control the timing. If this is on, Coolify will deploy as soon as it sees a commit, which will fail because the Docker images haven't finished building yet.
-* Go to the **Webhooks** tab in Coolify and copy the **Deploy Webhook URL**.
-* **Generate an API Token:**
-  * In Coolify, go to **Keys & Tokens > API tokens**.
-  * Create a new token and copy it.
-* **Add Secrets to GitHub:**
-  * In your GitHub repository on github.com, navigate to **Settings > Secrets and variables > Actions**.
-  * Create a new repository secret named `COOLIFY_WEBHOOK` and paste the URL.
-  * Create another repository secret named `COOLIFY_TOKEN` and paste your API token.
-* This allows GitHub Actions to securely authenticate and trigger the deployment ONLY after the images are successfully built and pushed to GHCR.
+Below is the production `docker-compose.yml` configuration (which is excluded from Git to protect secrets/domains):
 
-### Automated Builds & Integration
+```yaml
+version: "3.8"
 
-*   **GitHub Actions:** Whenever code is pushed to the `main` branch or a PR is created, GitHub Actions automatically builds the Next.js `app` and WebSocket `socket-server` and pushes the immutable images to the GitHub Container Registry (`ghcr.io`).
-*   **Production:** When the `main` branch build finishes, the GitHub Action triggers the Coolify Webhook. Coolify automatically pulls the `latest` image tags and deploys them using `docker-compose.prod.yml`.
-*   **PR Previews:** Coolify automatically provisions ephemeral preview environments by injecting variables into the same `docker-compose.prod.yml` file, safely isolating data by appending the PR number to volume paths.
+services:
+  app:
+    container_name: secure-chat-app
+    image: ghcr.io/your-github-username/secure-chat-self-hosted-app:latest
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://secure-chat-redis:6379
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SOCKET_URL= # Left empty to trigger client-side subdomain fallback
+    depends_on:
+      - redis
+
+  socket-server:
+    container_name: secure-chat-socket
+    image: ghcr.io/your-github-username/secure-chat-self-hosted-socket:latest
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://secure-chat-redis:6379
+      - SOCKET_PORT=3001
+      - CORS_ORIGIN=https://secure-chat.yourdomain.com
+      - NODE_ENV=production
+    depends_on:
+      - redis
+
+  redis:
+    container_name: secure-chat-redis
+    image: redis:alpine
+    restart: unless-stopped
+    volumes:
+      - /mnt/data/secure-chat/redis:/data
+```
 
 ---
 
@@ -153,15 +166,12 @@ This project uses an automated deployment pipeline via GitHub Actions and Coolif
 | `SOCKET_PORT` | `3001` | Socket server port |
 | `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin for WebSocket |
 | `NODE_ENV` | `development` | Environment mode |
-| `NEXT_PUBLIC_SOCKET_URL` | (empty) | Socket URL. Leave empty to use Next.js proxying. |
+| `NEXT_PUBLIC_SOCKET_URL` | (empty) | Socket URL. Leave empty to use dynamic client-side fallback. |
 
 ## Development Conventions
 
-*   **API Logic:** All backend logic in Elysia app structure in `src/app/api`.
-*   **Realtime Events:** Define in `socket-server.ts` schema, use `Realtime` class to publish.
+*   **API Logic:** All backend logic is in Elysia app structure in `src/app/api`.
+*   **Realtime Events:** Defined in `socket-server.ts` schema, using the `Realtime` class.
 *   **Type Safety:** Uses Elysia's `Eden` for API and Zod for realtime events.
 *   **Components:** UI components in `src/components/ui` (shadcn/ui).
-*   **Frontend:** `next-app-bun/src/app` (App Router). Uses React Query for data fetching.
-*   **Backend API:** `next-app-bun/src/app/api/[[...slugs]]/route.ts`. Elysia app instance exports `GET` and `POST` handlers.
-*   **Realtime:** `next-app-bun/socket-server.ts`. Runs as a separate process, relays Redis pub/sub to WebSocket clients.
-*   **Infrastructure:** Docker Compose manages the services. Coolify's Traefik proxy handles routing traffic to the correct container based on the URL path.
+*   **Frontend:** Next.js App Router (React Query for data fetching).

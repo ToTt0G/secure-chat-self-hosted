@@ -15,6 +15,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Docker Compose
+docker-compose.yml
+
 # Vercel
 # =================================
 .vercel

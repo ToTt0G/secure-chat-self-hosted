@@ -4,13 +4,10 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  # Change this if your repository owner differs
   IMAGE_NAME: tott0g/secure-chat-self-hosted
 
 jobs:
@@ -37,9 +34,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-app
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=true
 
       - name: Build and push Web App
         uses: docker/build-push-action@v5
@@ -56,9 +51,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-socket
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=true
 
       - name: Build and push Socket Server
         uses: docker/build-push-action@v5
@@ -71,14 +64,12 @@ jobs:
 
   deploy:
     needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Coolify Webhook
+      - name: Trigger Dokploy Webhook
         run: |
-          if [ -n "${{ secrets.COOLIFY_WEBHOOK }}" ]; then
-            curl -s -X POST "${{ secrets.COOLIFY_WEBHOOK }}" \
-                 -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+          if [ -n "${{ secrets.DOKPLOY_WEBHOOK }}" ]; then
+            curl -s -X POST "${{ secrets.DOKPLOY_WEBHOOK }}"
           else
-            echo "COOLIFY_WEBHOOK secret is not set, skipping deployment trigger."
+            echo "DOKPLOY_WEBHOOK secret is not set, skipping deployment trigger."
           fi

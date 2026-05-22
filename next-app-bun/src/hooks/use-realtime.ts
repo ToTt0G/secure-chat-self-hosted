@@ -50,8 +50,11 @@ export function useRealtime({
         
         // Smart fallback: If we are on the production domain, route to the dedicated sockets subdomain
         if (!finalServerUrl && typeof window !== "undefined") {
-            if (window.location.hostname === "secure-chat.redsunsetfarm.com") {
-                finalServerUrl = "https://secure-chat-sockets.redsunsetfarm.com";
+            const hostname = window.location.hostname;
+            if (hostname.endsWith(".ezryder.us")) {
+                const parts = hostname.split(".");
+                parts[0] = parts[0] + "-sockets";
+                finalServerUrl = `${window.location.protocol}//${parts.join(".")}`;
             } else {
                 finalServerUrl = window.location.origin;
             }
